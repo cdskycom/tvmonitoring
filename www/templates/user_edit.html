@@ -1,0 +1,144 @@
+{% extends 'managebase.html' %}
+
+{% block title %} 用户编辑 {% endblock %}
+
+{% block beforehead %}
+<script type="text/javascript">
+	var ID = '{{{ id }}}'
+	var action = '{{{ action }}}'
+	
+	function initVM(user,actiontype){
+		var vm = new Vue({
+			el:'#vm',
+			data:{
+				user: user,
+				actiontype: actiontype,
+				confirmpassword:'',
+				validateerror:false,
+				validatemessage:'',
+				newpassword:''
+			},
+			methods:{
+				submit:function(event){
+					var that = this;
+					event.preventDefault();
+					if(this.actiontype == 'add'){
+						if(this.user.password != this.confirmpassword){
+							this.validateerror = true;
+							this.validatemessage = "两次输入的密码不一致";
+							return
+						}
+						this.user.password = CryptoJS.SHA1(this.user.account + ':' + this.user.password).toString();
+
+					}
+					axios.post(action,this.user).then(function(res){
+						
+						if(res.data.error){
+							
+							that.validateerror = true;
+							UIkit.modal.alert(res.data.message).then(function () {
+					               console.log('Alert closed.')
+					           });
+							return
+						}
+						return location.assign('/manage/user')
+					});
+				},
+				resetPasswd: function(event){
+					var that = this;
+					event.preventDefault();
+					var altpassword = CryptoJS.SHA1(this.user.account + ':' + this.newpassword).toString();
+
+					axios.post('/manage/api/user/reset/' + that.user.id, {newpassword: altpassword}).then(function(res){
+						if(res.data.error){
+							
+							that.validateerror = true;
+							UIkit.modal.alert(res.data.message).then(function () {
+					               console.log('Alert closed.')
+					           });
+							return
+						}
+						
+						return location.assign('/manage/user')
+					});
+				}
+				
+			},
+			filters:{
+				
+			}
+		});
+	}
+
+	window.onload = function(){
+		if(ID){
+			axios.get('/api/users/' + ID).then(res=>{initVM(res.data.user,'edit')});
+		}
+		else{
+			initVM({
+				account:'',
+				password:'',
+				name:'',
+				is_admin:0
+			},'add')
+		}
+
+	}
+
+	
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div id="vm" class="uk-width-2-3">
+	<div id="app" class="uk-card uk-card-small uk-card-body uk-overflow-auto">
+	<form v-on:submit="submit">
+    <fieldset class="uk-fieldset">
+
+        <legend class="uk-legend">编辑/添加用户</legend>
+
+        <div class="uk-margin">
+            <label>账号:</label><input class="uk-input" type="text" v-model="user.account" placeholder="用户账号">
+        </div>
+        <div class="uk-margin" v-if="actiontype === 'add'">
+            <label>密码:</label><input class="uk-input" type="password" v-model="user.password" placeholder="密码">
+        </div>
+        <div class="uk-margin" v-if="actiontype === 'add'">
+            <label>确认密码:</label><input class="uk-input" type="password" v-model="confirmpassword" placeholder="请再输入一次密码">
+            <span class="uk-label uk-label-warning" v-if="validateerror">{{ validatemessage }}</span>
+        </div>
+
+        <div class="uk-margin">
+            <label>显示名:</label><input class="uk-input" type="text" v-model="user.name" placeholder="显示名">
+        </div>
+        <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
+            <label><input class="uk-radio" type="radio" name="adminradio" value="0" v-model="user.is_admin">巡检工程师</label>
+            <label><input class="uk-radio" type="radio" name="adminradio" value="1" v-model="user.is_admin"> 系统管理员</label>
+        </div>
+        <div class="uk-form-row">
+                <button type="submit" class="uk-button uk-button-primary">保  存</button>
+                
+        </div>
+
+        <div v-if="actiontype === 'edit'">
+        	<br>
+        	<br>
+        	<hr>
+        	<br>
+        	<input class="uk-input uk-form-width-medium" type="text" v-model="newpassword" placeholder="新密码">
+        	<button type="button" class="uk-button uk-button-primary" v-on:click="resetPasswd">重置密码</button>
+        </div>
+       
+
+        
+
+    </fieldset>
+	</form>
+</div>
+
+</div>
+
+
+
+{% endblock %}

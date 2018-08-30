@@ -1,0 +1,142 @@
+{% extends 'managebase.html' %}
+
+{% block title %} 用户管理 {% endblock %}
+
+{% block beforehead %}
+<script type="text/javascript">
+	function initVM(users, totalpage, total_items){
+		var vm = new Vue({
+		el:'#app',
+		data:{
+			users: users,
+			name:"xiexie",
+			totalPage:totalpage,
+			currentPage:1,
+			itemsPerPage:10,
+			totalItems: total_items
+		},
+		methods:{
+			editUser:function(user){
+				location.assign('/manage/user/edit?id=' + user.id);
+			},
+			deleteUser:function(user){
+				if (confirm('确认要删除“' + user.account + '”？删除后不可恢复！')){
+                    axios.post('/manage/api/user/delete/' + user.id).then(function(res){
+                    	refresh()
+                    })
+                }
+                
+			},
+			addUser:function(){
+				// axios.post('/fake',users).then((res)=>{})
+				location.assign('/manage/user/add')
+			},
+			handletopage:function(playload){
+				that = this;
+				this.currentPage = playload.page;
+				var url = 'http://127.0.0.1:8088/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
+				axios.get(url).then(function(res){
+					that.totalPage = res.data.totalpage;
+					that.totalItems = res.data.totalitems;
+					that.users = res.data.users;
+					console.log(that.totalPage)
+
+				});
+
+			},
+			handleitemschange:function(playload){
+				that = this;
+				this.itemsPerPage = playload.newitems;
+				this.currentPage = 1;
+				var url = 'http://127.0.0.1:8088/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
+				axios.get(url).then(function(res){
+					that.totalPage = res.data.totalpage;
+					that.totalItems = res.data.totalitems;
+					that.users = res.data.users;
+					console.log(that.totalPage)
+
+				});
+
+			}
+
+		},
+		filters:{
+			toTypeString:function(value){
+				if (value == 0){
+					return "巡检工程师";
+				}else if(value == 1){
+					return "管理员"
+				}else{
+					return "未知"
+				}
+			}
+
+		},
+		});
+	}
+
+	window.onload = function(){
+		axios.get('http://127.0.0.1:8088/api/users?page=1&items_perpage=10').then(res=>{initVM(res.data.users, res.data.totalpage, res.data.totalitems)});
+
+	}
+
+	
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="uk-width-1-1">
+   
+
+
+
+	<div id="app" class="uk-card uk-card-small uk-card-body uk-overflow-auto">
+		<button class="uk-button uk-button-primary uk-button-small" v-on:click="addUser">添加新用户</button>
+		 <table class="uk-table uk-table-middle uk-table-small uk-table-divider uk-table-striped uk-text-small">
+		    <thead>
+		        <tr>
+		            <th class="uk-width-small">ID</th>
+		            <th class="uk-width-medium">登录账号</th>
+		            <th class="uk-width-medium">用户名</th>
+		            <th class="uk-width-medium">类型</th>
+		            <th class="uk-width-small">操作</th>
+
+		        </tr>
+		    </thead>
+		    <tbody>
+		        <tr v-for="user in users">
+		            <td><span v-text="user.id"></span></td>
+		            
+		            <td><span v-text="user.account"></span></td>
+		            <td>{{ user.name }}</td>
+		            <td>{{ user.is_admin | toTypeString }}</span></td>
+		            <td>
+		            	<a href="#0" v-on:click="editUser(user)" >编辑</a>
+                        <a href="#0" v-on:click="deleteUser(user)">删除</a>
+		            	
+		            </td>
+
+		        </tr>
+		        
+		    </tbody> 
+
+		</table>
+		
+	<my-pagenation v-bind:items-per-page="itemsPerPage" v-bind:total-page="totalPage" v-bind:current-page="currentPage" v-bind:total-items="totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
+	</div>
+	
+</div>
+	
+		    
+{% endblock %}
+
+	  
+
+
+
+	
+
+	
+
