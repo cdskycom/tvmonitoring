@@ -40,6 +40,14 @@ def session_scope():
 	finally: 
 		session.close()
 
+# 服务供应商model
+class SupportProvider(Base):
+	__tablename__ = 'support_provider'
+	id = Column(Integer, primary_key=True)
+	provider_name = Column(String(100))
+	contact = Column(String(45))
+	contact_phone = Column(String(45))
+
 # 用户model
 class User(Base):
 	__tablename__ = 'users'
@@ -49,12 +57,14 @@ class User(Base):
 	password = Column(String(50))
 	name = Column(String(100))
 	is_admin = Column(Integer)
+	support_provider = Column(Integer, ForeignKey('support_provider.id'))
 
-	def __init__(self, account, password, name, is_admin):
+	def __init__(self, account, password, name, is_admin, support_provider):
 		self.account = account
 		self.password = password
 		self.name = name
 		self.is_admin = is_admin
+		self.support_provider = support_provider
 
 	# 查询用户信息，支持提供字符串过滤参数(filter1, filter2 ...)
 	@classmethod
@@ -104,7 +114,7 @@ class User(Base):
 		return 	result
 	
 	@classmethod
-	def updateUser(self, id, name, is_admin):
+	def updateUser(self, id, name, is_admin, support_provider):
 		
 		with session_scope() as session:
 			
@@ -112,6 +122,7 @@ class User(Base):
 			# logging.info('修改前的user： %s : %s : %s' % (user.account, user.name, user.password))
 			user.name = name
 			user.is_admin = is_admin
+			user.support_provider = support_provider
 			session.commit()
 			result = query_to_dict(user)
 		return result	
@@ -149,7 +160,51 @@ class User(Base):
 		return '<User(id: %s, account: %s, name: %s)>' % (self.id, self.account, self.name)
 
 
+# 工单model
+class TroubleTicket(Base):
+	__tablename__ = 'trouble_tickets'
 
+	id = Column(Integer, primary_key=True)
+	report_channel = Column(String(45))
+	type = Column(String(45))
+	region = Column(String(45))
+	level = Column(String(45))
+	description = Column(String(500))
+	impact = Column(String(500))
+	startTime = Column(DateTime)
+	endTime = Column(DateTime)
+	custid = Column(String(15))
+	mac = Column(String(17))
+	contact = Column(String(45))
+	contact_phone = Column(String(45))
+	status = Column(String(20))
+	create_user = Column(Integer, ForeignKey('users.id'))
+	create_user_name = Column(String(45))
+	deal_user = Column(Integer, ForeignKey('users.id'))
+	deal_user_name = Column(String(45))
+
+# 工单处理日志model
+class TroubleDealLog(Base):
+	__tablename__ = 'trouble_deal_log'
+
+	id = Column(Integer, primary_key=True)
+	trouble_ticket_id = Column(Integer, ForeignKey('trouble_tickets.id'))
+	deal_user = Column(Integer, ForeignKey('users.id'))
+	deal_user_name = Column(String(45))
+	remark = Column(String(200))
+	next_deal_user = Column(Integer, ForeignKey('users.id'))
+	next_deal_user_name = Column(String(45))
+
+# 工单处理任务model
+class TroubleTask(Base):
+	__tablename__ = 'trouble_task'
+
+	id = Column(Integer, primary_key=True)
+	trouble_ticket = Column(Integer, ForeignKey('trouble_tickets.id'))
+	status = Column(Integer)
+	support_provider = Column(Integer, ForeignKey('support_provider.id'))
+	remark = Column(String(100))
+	
 
 # 排班表
 class Schedule(Base):
