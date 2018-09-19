@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, text, Column, Integer, String, Text, DateT
 
 from contextlib import contextmanager
 from collections import Iterable
-
+from const import const
 import pdb
 
 
@@ -165,11 +165,15 @@ class TroubleTicket(Base):
 	__tablename__ = 'trouble_tickets'
 
 	id = Column(Integer, primary_key=True)
+	#上报渠道
 	report_channel = Column(String(45))
+	#故障类型
 	type = Column(String(45))
 	region = Column(String(45))
+	#故障级别
 	level = Column(String(45))
 	description = Column(String(500))
+	#故障影响
 	impact = Column(String(500))
 	startTime = Column(DateTime)
 	endTime = Column(DateTime)
@@ -182,6 +186,39 @@ class TroubleTicket(Base):
 	create_user_name = Column(String(45))
 	deal_user = Column(Integer, ForeignKey('users.id'))
 	deal_user_name = Column(String(45))
+
+	def __init__(self, report_channel, type, region, level, description, 
+		impact, startTime, custid, mac, contact, contact_phone, 
+		create_user, create_user_name, deal_user, deal_user_name):
+		self.report_channel = report_channel
+		self.type = type
+		self.region = region
+		self.level = level
+		self.description = description
+		self.impact = impact
+		self.startTime = startTime
+		self.custid = custid
+		self.mac = mac
+		self.contact = contact
+		self.contact_phone = contact_phone
+		self.status = const.STATUS_ACCEPT
+		self.create_user = create_user
+		self.create_user_name = create_user_name
+		self.deal_user = deal_user
+		self.deal_user_name = deal_user_name
+
+	def save(self):
+		with session_scope() as session:
+			session.add(self)
+			session.commit()
+
+	@classmethod
+	def getTroubleCount(self, *filters):
+		with session_scope() as session:
+			troubleCount = session.query(TroubleTicket).filter(*filters).count()
+		
+		return troubleCount
+
 
 # 工单处理日志model
 class TroubleDealLog(Base):
@@ -204,7 +241,14 @@ class TroubleTask(Base):
 	status = Column(Integer)
 	support_provider = Column(Integer, ForeignKey('support_provider.id'))
 	remark = Column(String(100))
-	
+
+	@classmethod
+	def getTaskCount(self, *filters):
+		with session_scope() as session:
+			taskCount = session.query(TroubleTask).filter(*filters).count()
+		
+		return taskCount
+
 
 # 排班表
 class Schedule(Base):
@@ -499,8 +543,4 @@ if __name__ == '__main__':
 	
 
 	print(InspectionItem.getItems())
-
-
-
-
 

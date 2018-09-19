@@ -5,7 +5,9 @@ from apis import APIValueError, APIError
 from sqlalchemy.orm.exc import NoResultFound
 from aiohttp import web
 from config import configs
+from const import const
 import sys, logging, hashlib, base64, re, json, time, datetime, math
+import trouble
 import pdb
 
 COOKIE_NAME = 'tvmonitorsession'
@@ -129,7 +131,7 @@ def api_register_user(*, account, password, name, is_admin):
 	user = User(account, hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), name, is_admin)
 	user.save()
 	res = dict()
-	res['returncode'] = 0
+	res['returncode'] = const.RETURN_OK
 	res['message'] = '用户添加成功'
 	# make session cookie:
 	# r = web.Response()
@@ -364,19 +366,50 @@ def addItem(*, content, criterion, type_code, itemrequired=1):
 
 	pass
 
-@get('/api/synmongodb')
-def syndata(*, epgdata):
-	try:
-		d = int(epgdata)
-		logging.info('syn epgdata success')
-	except Exception as e:
-		logging.error('failed syn epgdata: parse epg template error - %s' % (e))
-		logging.error('abort syn progress...')
+# @get('/api/synmongodb')
+# def syndata(*, epgdata):
+# 	try:
+# 		d = int(epgdata)
+# 		logging.info('syn epgdata success')
+# 	except Exception as e:
+# 		logging.error('failed syn epgdata: parse epg template error - %s' % (e))
+# 		logging.error('abort syn progress...')
 
 @get('/manage/opttool')
 def getOptTool(request):
 	return {
 		'__template__': 'opttool.html'
 	}
+
+@get('/manage/trouble')
+def getTroubleTickets(request):
+	return {
+		'__template__': 'dashboard.html'
+	}
+
+@post('/api/addtroubleticket')
+def addTroubleTicket(*, report_channel, type, region, level, description, 
+		impact, startTime, custid, mac, contact, contact_phone, 
+		create_user, create_user_name, deal_user, deal_user_name):
+
+	return trouble.addTroubleTicket(report_channel, type, region, level, description, 
+		impact, startTime, custid, mac, contact, contact_phone, 
+		create_user, create_user_name, deal_user, deal_user_name)
+
+# 获取工单统计数据，uid为登录用户id，pid为厂商id(suppor_provider)
+@get('/api/toubleticket/statistic/')
+def getTroubleStat(*, uid, pid):
+	#工单量
+	troubleCount = trouble.getAllTroubleCount(const.STATUS_ALL)
+	#待处理工单量
+	acptTroubleCount = trouble.getAllTroubleCount(const.STATUS_ACCEPT)
+	#处理中的工单
+	dealingTroubleCount = trouble.getAllTroubleCount(const.STATUS_DEALING)
+	#当前厂商待处理任务量
+	taskCount = trouble.getTaskCountByProvider(pid)
+
+	return dict(troubleCount=troubleCount, acptTroubleCount=acptTroubleCount, dealingTroubleCount=dealingTroubleCount,
+		taskCount=taskCount)
+
 
 

@@ -1,0 +1,206 @@
+{% extends 'troublebase.html' %}
+
+{% block title %} 概览 {% endblock %}
+
+{% block beforehead %}
+<script type="text/javascript">
+  function initVM(users, totalpage, total_items){
+    var vm = new Vue({
+    el:'#app',
+    data:{
+      users: users,
+      name:"xiexie",
+      totalPage:totalpage,
+      currentPage:1,
+      itemsPerPage:10,
+      totalItems: total_items
+    },
+    methods:{
+      editUser:function(user){
+        location.assign('/manage/user/edit?id=' + user.id);
+      },
+      deleteUser:function(user){
+        if (confirm('确认要删除“' + user.account + '”？删除后不可恢复！')){
+                    axios.post('/manage/api/user/delete/' + user.id).then(function(res){
+                      refresh()
+                    })
+                }
+                
+      },
+      addUser:function(){
+        // axios.post('/fake',users).then((res)=>{})
+        location.assign('/manage/user/add')
+      },
+      handletopage:function(playload){
+        that = this;
+        this.currentPage = playload.page;
+        var url = '/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
+        axios.get(url).then(function(res){
+          that.totalPage = res.data.totalpage;
+          that.totalItems = res.data.totalitems;
+          that.users = res.data.users;
+          console.log(that.totalPage)
+
+        });
+
+      },
+      handleitemschange:function(playload){
+        that = this;
+        this.itemsPerPage = playload.newitems;
+        this.currentPage = 1;
+        var url = '/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
+        axios.get(url).then(function(res){
+          that.totalPage = res.data.totalpage;
+          that.totalItems = res.data.totalitems;
+          that.users = res.data.users;
+          console.log(that.totalPage)
+
+        });
+
+      }
+
+    },
+    filters:{
+      toTypeString:function(value){
+        if (value == 0){
+          return "巡检工程师";
+        }else if(value == 1){
+          return "管理员"
+        }else{
+          return "未知"
+        }
+      }
+
+    },
+    });
+  }
+
+  window.onload = function(){
+    axios.get('/api/users?page=1&items_perpage=10').then(res=>{initVM(res.data.users, res.data.totalpage, res.data.totalitems)});
+
+  }
+
+  
+</script>
+
+{% endblock %}
+
+{% block content %}
+ <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        工单概览
+        <small>工单数、任务数</small>
+      </h1>
+    </section>
+
+    <!-- Main content -->
+    <section id="app" class="content container-fluid">
+        <div class="row">
+        <div class="col-lg-3 col-xs-6">
+          <!-- small box -->
+          <div class="small-box bg-aqua">
+            <div class="inner">
+              <h3>150</h3>
+
+              <p>工单总量</p>
+            </div>
+            <div class="icon">
+              <i class="fa fa-fw fa-cogs"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+        <!-- ./col -->
+        <div class="col-lg-3 col-xs-6">
+          <!-- small box -->
+          <div class="small-box bg-green">
+            <div class="inner">
+              <h3>20</h3>
+
+              <p>待分派工单</p>
+            </div>
+            <div class="icon">
+              <i class="fa fa-fw fa-arrow-circle-o-up"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+        <!-- ./col -->
+        <div class="col-lg-3 col-xs-6">
+          <!-- small box -->
+          <div class="small-box bg-yellow">
+            <div class="inner">
+              <h3>44</h3>
+
+              <p>正在处理...</p>
+            </div>
+            <div class="icon">
+              <i class="ion ion-person-add"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+        <!-- ./col -->
+        <div class="col-lg-3 col-xs-6">
+          <!-- small box -->
+          <div class="small-box bg-red">
+            <div class="inner">
+              <h3>65</h3>
+
+              <p>待办任务</p>
+            </div>
+            <div class="icon">
+              <i class="fa fa-fw fa-clock-o"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+        <!-- ./col -->
+      </div>
+
+      <div class="row">
+        <div class="col-xs-12">
+          <div class="box">
+            <div class="box-header">
+              <h3 class="box-title">待办任务列表</h3>
+
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body no-padding">
+              <table class="table">
+                <tbody><tr>
+                  <th style="width: 10px">ID</th>
+                  <th style="width: 90px">任务时间</th>
+                  <th style="width: 80px">故障级别</th>
+                  <th>故障现象</th>
+                  <th>影响范围</th>
+                  <th style="width: 80px">详情</th>
+                </tr>
+                <tr>
+                  <td>183</td>
+                  <td>2018-09-18</td>
+                  <td><span class="label label-danger">严重故障</span></td>
+                  <td>终端开机报错766</td>
+                  <td>全省终端均出现开机766错误，疑似TMS故障</td>
+                  <td><a href="/troubletask.html">查看详情</a></td>
+                </tr>
+               
+              </tbody></table>
+            </div>
+            <div class="box-footer clearfix">
+              
+              <my-pagenation v-bind:items-per-page="itemsPerPage" v-bind:total-page="totalPage" v-bind:current-page="currentPage" v-bind:total-items="totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
+              
+            </div>
+
+            <!-- /.box-body -->
+          </div>
+          <!-- /.box -->
+        </div>
+      </div>
+
+    </section>
+    <!-- /.content -->
+
+{% endblock %}

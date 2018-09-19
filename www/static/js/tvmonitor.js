@@ -1,3 +1,5 @@
+var baseUrl = "http://127.0.0.1:8088/api"
+
 function refresh() {
     var
         t = new Date().getTime(),
@@ -54,20 +56,20 @@ Vue.component('my-pagenation',{
         return {items: this.itemsPerPage, current:this.currentPage, newpage:this.currentPage}
          
     },
-     template: '<div class="tv-pagenation">' + '<ul class="uk-pagination" uk-margin>' +
+     template: '<div class="input-group input-group-sm pull-right">' + 
             '<span>合计:{{ totalItems }}条记录, 共{{ totalPage }} 页,每页</span>' +
             '<select class="tv-page-form" v-model="items" v-on:change="itemsChange" >' + 
             '<option value="5" selected="">5</option><option value="10" selected="">10</option><option value="15" selected="">15</option><option value="20" selected="">20</option></select>' + 
             '<span>条</span>' + 
+            '<ul class="pagination pagination-sm no-margin">' +
+            '<li><a href="#" v-on:click="toPrePage">«</a></li>' +
             
-            '<li><a href="#" v-on:click="toPrePage"><span uk-pagination-previous></span></a></li>' +
+            '<li v-for="num in displayNumber" v-on:click="changePage(num)" ><a href="#">{{ num }}</a></li>' +
             
-            '<li v-for="num in displayNumber" v-on:click="changePage(num)" ><a href="#"><span v-bind:class="{\'tv-page-active\' : num==current }">{{ num }}</span></a></li>' +
-            
-            '<li><a href="#" v-on:click="toNextPage"><span uk-pagination-next></span></a></li>' + 
-           
+            '<li><a href="#" v-on:click="toNextPage">»</a></li>' + 
+            '<span> 跳转至:</span>' +
             '<input type="text" v-model="newpage" size="5">' +
-            '<button  v-on:click="toPage">Go</button>' +
+            '<button type="button" class="btn btn-info" v-on:click="toPage">Go</button>' +
             '</ul></div>' ,
     
     methods: {
