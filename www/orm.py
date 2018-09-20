@@ -48,6 +48,8 @@ class SupportProvider(Base):
 	contact = Column(String(45))
 	contact_phone = Column(String(45))
 
+	#users = relationship("User", back_populates="support_provider")
+
 # 用户model
 class User(Base):
 	__tablename__ = 'users'
@@ -57,7 +59,8 @@ class User(Base):
 	password = Column(String(50))
 	name = Column(String(100))
 	is_admin = Column(Integer)
-	support_provider = Column(Integer, ForeignKey('support_provider.id'))
+	support_provider_id = Column(Integer, ForeignKey('support_provider.id'))
+	support_provider = relationship("SupportProvider") #back_populates="users")
 
 	def __init__(self, account, password, name, is_admin, support_provider):
 		self.account = account
@@ -73,9 +76,9 @@ class User(Base):
 		
 		with session_scope() as session:
 
-			userCount = session.query(User).filter(*filters).count()
+			#userCount = session.query(User).filter(*filters).count()
 				
-			users = session.query(User).filter(*filters).all()
+			users = session.query(User).options(joinedload(User.support_provider)).filter(*filters).all()
 			
 			result = query_to_dict(users)
 		# for user in result:
@@ -478,6 +481,7 @@ def orm_to_dict(obj):
 				try:
 					json.dumps(data)     # this will fail on non-encodable values, like other classes
 					fields[field] = data
+
 				except TypeError:    # 添加了对datetime的处理
 					if isinstance(data, datetime.datetime):
 						fields[field] = data.isoformat()

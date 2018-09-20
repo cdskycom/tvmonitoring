@@ -75,7 +75,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
               <!-- The user image in the navbar-->
               
               <!-- hidden-xs hides the username on small devices so only the image appears. -->
-              <span class="hidden-xs">当前值班: {{{ __user__.name }}} - {{{ __user__.id }}} - {{{ __user__.support_provider }}}</span>
+              <span class="hidden-xs">当前值班: {{{ __user__.name }}} - {{{ __user__.support_provider.provider_name }}}</span>
             </a>
             <ul class="dropdown-menu">
               <!-- The user image in the menu -->
@@ -83,6 +83,10 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
                 <p>
                   当前值班: {{{ __user__.name }}}
+                  
+                </p>
+                <p>
+                  支撑单位: {{{ __user__.support_provider.provider_name }}}
                   <small>Member since Nov. 2018</small>
                 </p>
               </li>
