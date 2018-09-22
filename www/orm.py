@@ -48,7 +48,22 @@ class SupportProvider(Base):
 	contact = Column(String(45))
 	contact_phone = Column(String(45))
 
-	#users = relationship("User", back_populates="support_provider")
+	users = relationship("User", back_populates="support_provider")
+	@classmethod
+	def getAll(self):
+		with session_scope() as session:
+			providers = session.query(SupportProvider).all()
+
+			result = []
+			for provider in providers:
+				result.append(provider.to_dict())
+
+		return result
+
+	def to_dict(self):
+		from schema import SupportProviderSchema
+		sp_schema = SupportProviderSchema()
+		return sp_schema.dump(self).data
 
 # 用户model
 class User(Base):
@@ -60,7 +75,7 @@ class User(Base):
 	name = Column(String(100))
 	is_admin = Column(Integer)
 	support_provider_id = Column(Integer, ForeignKey('support_provider.id'))
-	support_provider = relationship("SupportProvider") #back_populates="users")
+	support_provider = relationship("SupportProvider", back_populates="users")
 
 	def __init__(self, account, password, name, is_admin, support_provider):
 		self.account = account
@@ -79,11 +94,18 @@ class User(Base):
 			#userCount = session.query(User).filter(*filters).count()
 				
 			users = session.query(User).options(joinedload(User.support_provider)).filter(*filters).all()
+			result = []
 			
-			result = query_to_dict(users)
-		# for user in result:
-		# 	user['password'] = '******'
+			for user in users:
+				result.append(user.to_dict())
+			#result = query_to_dict(users)
+		
 		return result
+	
+	def to_dict(self):
+		from schema import UserSchema
+		user_schema = UserSchema()
+		return user_schema.dump(self).data
 
 	@classmethod
 	def getUserCount(self, *filters):
@@ -99,8 +121,10 @@ class User(Base):
 			
 			offset = (page - 1) * items_perpage
 			users = session.query(User).filter(*filters).limit(items_perpage).offset(offset)
-			
-			result = query_to_dict(users)
+			result = []
+			for user in users:
+				result.append(user.to_dict())
+			# result = query_to_dict(users)
 		# for user in result:
 		# 	user['password'] = '******'
 
@@ -190,6 +214,8 @@ class TroubleTicket(Base):
 	deal_user = Column(Integer, ForeignKey('users.id'))
 	deal_user_name = Column(String(45))
 
+	tasks = relationship("TroubleTask", back_populates="trouble")
+
 	def __init__(self, report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
 		create_user, create_user_name, deal_user, deal_user_name):
@@ -234,6 +260,22 @@ class TroubleDealLog(Base):
 	remark = Column(String(200))
 	next_deal_user = Column(Integer, ForeignKey('users.id'))
 	next_deal_user_name = Column(String(45))
+	log_type = Column(String(45))
+	support_provider_name = Column(String(45))
+
+	@classmethod
+	def getDealLogByTrouble(self,troubleId):
+		with session_scope() as session:
+			logs = session.query(TroubleDealLog).filter(TroubleDealLog.trouble_ticket_id==troubleId).all()
+			result = []
+			for log in logs:
+				result.append(log.to_dict())
+		return result
+
+	def to_dict(self):
+		from schema import TroubleDealLogSchema
+		log_schema = TroubleDealLogSchema()
+		return log_schema.dump(self).data
 
 # 工单处理任务model
 class TroubleTask(Base):
@@ -244,6 +286,13 @@ class TroubleTask(Base):
 	status = Column(Integer)
 	support_provider = Column(Integer, ForeignKey('support_provider.id'))
 	remark = Column(String(100))
+	createtime = Column(DateTime)
+	endtime = Column(DateTime)
+	reply = Column(String(100))
+	assign_user = Column(Integer, ForeignKey('users.id'))
+
+	trouble = relationship("TroubleTicket", back_populates="tasks")
+	assigner = relationship("User")
 
 	@classmethod
 	def getTaskCount(self, *filters):
@@ -251,6 +300,35 @@ class TroubleTask(Base):
 			taskCount = session.query(TroubleTask).filter(*filters).count()
 		
 		return taskCount
+
+	@classmethod
+	def getTask(self, *filters):
+		with sessionmaker() as session:
+			tasks = session.query(TroubleTask).filter(*filters).all()
+			logging.info('gettask' + tasks)
+			result = []
+			
+			for task in tasks:
+				result.append(task.to_dict())	
+		return result
+
+	@classmethod
+	def getTaskPage(self, page, items_perpage, *filters):
+		with session_scope() as session:
+			
+			offset = (page - 1) * items_perpage
+			tasks = session.query(TroubleTask).filter(*filters).limit(items_perpage).offset(offset)
+			result = []
+			for task in tasks:
+				result.append(task.to_dict())
+
+		return result
+
+	def to_dict(self):
+		from schema import TroubleTaskSchema
+		task_schema = TroubleTaskSchema()
+		return task_schema.dump(self).data
+
 
 
 # 排班表
@@ -499,33 +577,6 @@ def orm_to_dict(obj):
 			# a json-encodable dict
 			return fields
 	return obj
-# 序列化sqlalchemy结果集为json的帮助方法
-class AlchemyEncoder(json.JSONEncoder):
-	
-	def default(self, obj):
-		if isinstance(obj.__class__, DeclarativeMeta):
-			# an SQLAlchemy class
-			fields = {}
-			for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata' and hasattr(obj.__getattribute__(x), '__call__') == False]:
-				data = obj.__getattribute__(field)
-				try:
-					json.dumps(data)     # this will fail on non-encodable values, like other classes
-					fields[field] = data
-				except TypeError:    # 添加了对datetime的处理
-					if isinstance(data, datetime.datetime):
-						fields[field] = data.isoformat()
-					elif isinstance(data, datetime.date):
-						fields[field] = data.isoformat()
-					elif isinstance(data, datetime.timedelta):
-						fields[field] = (datetime.datetime.min + data).time().isoformat()
-					elif isinstance(data, list):
-						fields[field] = [self.default(item) for item in data]
-					else:
-						fields[field] = None
-			# a json-encodable dict
-			return fields
-
-		return json.JSONEncoder.default(self, obj)
 
 
 # 创建数据库-初始化数据

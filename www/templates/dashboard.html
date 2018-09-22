@@ -3,85 +3,7 @@
 {% block title %} 概览 {% endblock %}
 
 {% block beforehead %}
-<script type="text/javascript">
-  function initVM(users, totalpage, total_items){
-    var vm = new Vue({
-    el:'#app',
-    data:{
-      users: users,
-      name:"xiexie",
-      totalPage:totalpage,
-      currentPage:1,
-      itemsPerPage:10,
-      totalItems: total_items
-    },
-    methods:{
-      editUser:function(user){
-        location.assign('/manage/user/edit?id=' + user.id);
-      },
-      deleteUser:function(user){
-        if (confirm('确认要删除“' + user.account + '”？删除后不可恢复！')){
-                    axios.post('/manage/api/user/delete/' + user.id).then(function(res){
-                      refresh()
-                    })
-                }
-                
-      },
-      addUser:function(){
-        // axios.post('/fake',users).then((res)=>{})
-        location.assign('/manage/user/add')
-      },
-      handletopage:function(playload){
-        that = this;
-        this.currentPage = playload.page;
-        var url = '/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
-        axios.get(url).then(function(res){
-          that.totalPage = res.data.totalpage;
-          that.totalItems = res.data.totalitems;
-          that.users = res.data.users;
-          console.log(that.totalPage)
 
-        });
-
-      },
-      handleitemschange:function(playload){
-        that = this;
-        this.itemsPerPage = playload.newitems;
-        this.currentPage = 1;
-        var url = '/api/users?' + 'page=' + this.currentPage + '&items_perpage=' + this.itemsPerPage;
-        axios.get(url).then(function(res){
-          that.totalPage = res.data.totalpage;
-          that.totalItems = res.data.totalitems;
-          that.users = res.data.users;
-          console.log(that.totalPage)
-
-        });
-
-      }
-
-    },
-    filters:{
-      toTypeString:function(value){
-        if (value == 0){
-          return "巡检工程师";
-        }else if(value == 1){
-          return "管理员"
-        }else{
-          return "未知"
-        }
-      }
-
-    },
-    });
-  }
-
-  window.onload = function(){
-    axios.get('/api/users?page=1&items_perpage=10').then(res=>{initVM(res.data.users, res.data.totalpage, res.data.totalitems)});
-
-  }
-
-  
-</script>
 
 {% endblock %}
 
@@ -101,7 +23,7 @@
           <!-- small box -->
           <div class="small-box bg-aqua">
             <div class="inner">
-              <h3>150</h3>
+              <h3>{{ troubleCount }}</h3>
 
               <p>工单总量</p>
             </div>
@@ -116,7 +38,7 @@
           <!-- small box -->
           <div class="small-box bg-green">
             <div class="inner">
-              <h3>20</h3>
+              <h3>{{acptTroubleCount}}</h3>
 
               <p>待分派工单</p>
             </div>
@@ -131,7 +53,7 @@
           <!-- small box -->
           <div class="small-box bg-yellow">
             <div class="inner">
-              <h3>44</h3>
+              <h3>{{dealingTroubleCount}}</h3>
 
               <p>正在处理...</p>
             </div>
@@ -146,7 +68,7 @@
           <!-- small box -->
           <div class="small-box bg-red">
             <div class="inner">
-              <h3>65</h3>
+              <h3>{{taskCount}}</h3>
 
               <p>待办任务</p>
             </div>
@@ -169,28 +91,34 @@
             <!-- /.box-header -->
             <div class="box-body no-padding">
               <table class="table">
-                <tbody><tr>
+                <tbody>
+                <tr>
                   <th style="width: 10px">ID</th>
-                  <th style="width: 90px">任务时间</th>
+                  <th style="width: 130px">任务时间</th>
                   <th style="width: 80px">故障级别</th>
+                  <th>区域</th>
                   <th>故障现象</th>
                   <th>影响范围</th>
                   <th style="width: 80px">详情</th>
                 </tr>
-                <tr>
-                  <td>183</td>
-                  <td>2018-09-18</td>
-                  <td><span class="label label-danger">严重故障</span></td>
-                  <td>终端开机报错766</td>
-                  <td>全省终端均出现开机766错误，疑似TMS故障</td>
-                  <td><a href="/troubletask.html">查看详情</a></td>
+                <tr v-for="t in tasks.taskList">
+                  <td><span v-text="t.id"></span></td>
+                  <td><span >{{ t.createtime | DateTimeFtt }}</span></td>
+                  <td><span v-bind:class="['label', {'label-danger': t.trouble.level==0, 'label-warning': t.trouble.level==1, 'label-info': t.trouble.level==2}]" >{{ t.trouble.level | levelStr}}</span></td>
+                  <td><span v-text="t.trouble.region"></span></td>
+                  <td><span>{{ t.trouble.description | shortcutStr(strLengthInTable) }}</span></td>
+                  <td><span v-text="t.trouble.impact"></span></td>
+                  <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)">
+                        查看详情
+                      </button>
+                  </td>
                 </tr>
                
               </tbody></table>
             </div>
             <div class="box-footer clearfix">
               
-              <my-pagenation v-bind:items-per-page="itemsPerPage" v-bind:total-page="totalPage" v-bind:current-page="currentPage" v-bind:total-items="totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
+            <my-pagenation v-bind:items-per-page="tasks.itemsPerPage" v-bind:total-page="tasks.totalPage" v-bind:current-page="tasks.currentPage" v-bind:total-items="tasks.totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
               
             </div>
 
@@ -199,8 +127,272 @@
           <!-- /.box -->
         </div>
       </div>
+      <div class="modal fade bd-example-modal-lg" id="modal-default" style="display: none;">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title">故障信息</h4>
+              </div>
+              <div class="modal-body" v-if="tasks.currentTask != ''">
+                
+                  
+                  <!-- /.box-header -->
+                
+                  
+                    <div class="box-body">
+                      <div class="row">
+                        <div class="col-lg-6">
+                          <div class="form-group">
+                          <label  class="col-sm-4 control-label">故障时间</label>
+
+                          <div class="col-sm-8">
+                            <label class="form-control">{{ tasks.currentTask.trouble.startTime | DateTimeFtt }}</label>
+                          </div>
+                        </div>
+                          <!-- /input-group -->
+                        </div>
+                        <div class="col-lg-6">
+                          <div class="form-group">
+                            <label  class="col-sm-4 control-label">故障类型</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.type }}</label>
+                            </div>
+                          </div>
+                        </div>
+                     </div>
+                    
+                    <div class="row">
+                      <div class="col-lg-6">
+                          <div class="form-group">
+                            <label  class="col-sm-4 control-label">故障区域</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.region }}</label>
+                            </div>
+                          </div>
+                      </div>
+                        
+                      <div class="col-lg-6">
+                          <div class="form-group">
+                            <label  class="col-sm-4 control-label">上报渠道</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.report_channel }}</label>
+                            </div>
+                          </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                       <div class="col-lg-6">
+                          
+                            <label  class="col-sm-4 control-label">用户账号</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.custid }}</label>
+                            </div>
+                          
+                        </div>
+                          <!-- /input-group -->
+                        
+                        <div class="col-lg-6">
+                          
+                            <label  class="col-sm-4 control-label">MAC地址</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.mac }}</label>
+                            </div>
+                          
+                        </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-lg-6">
+                          
+                            <label  class="col-sm-4 control-label">影响范围</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.impact }}</label>
+                            </div>
+                          
+                        </div>
+                          <!-- /input-group -->
+                        
+                        <div class="col-lg-6">
+                          
+                            <label  class="col-sm-4 control-label">联系人</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.contact + ' : ' + tasks.currentTask.trouble.contact_phone  }}</label>
+                            </div>
+                          
+                        </div>
+                    </div>
+                      <div class="row">
+                        <div class="col-lg-6">
+                          
+                            <label  class="col-sm-4 control-label">派单人</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.assigner.support_provider.provider_name + '-' + tasks.currentTask.assigner.name }}</label>
+                            </div>
+                          
+                        </div>
+                         
+                        
+                        <div class="col-lg-6">
+                          
+                          
+                            <label  class="col-sm-4 control-label">工单号</label>
+
+                            <div class="col-sm-8">
+                              <label class="form-control">{{ tasks.currentTask.trouble.id }}</label>
+                            </div>
+                            
+                        </div> 
+                       </div>
+                    
+                      <div class="row">
+                        <div class="col-lg-12">
+                          <label  class="col-sm-2 control-label">故障描述</label>
+                          <div class="col-sm-10">
+                            <textarea class="form-control" rows="3" placeholder="Enter ..." disabled="" style="margin-bottom:5px">{{ tasks.currentTask.trouble.description }}</textarea>
+                          </div>
+                      </div>
+                      </div>
+                    
+                    
+                      <div class="row">
+                        <div class="col-lg-12">
+                          <label  class="col-sm-2 control-label">工单备注</label>
+                          <div class="col-sm-10">
+                            <textarea class="form-control" rows="3" placeholder="Enter ..." disabled="" style="margin-bottom:5px">{{ tasks.currentTask.remark }}</textarea>
+                          </div>
+                        </div>
+                      </div>
+                      
+
+                      <div class="accordion" id="accordionExample" style="padding-right: 15px;padding-left: 15px;">
+                      <div class="card">
+                        <div class="card-header" id="headingOne">
+                          
+                            <button class="btn btn-default btn-block btn-sm" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne" v-on:click="getLogs(tasks.currentTask.trouble.id)">
+                              <i class="fa fa-fw fa-angle-double-down" style="float:right"></i>
+                              <span style="float:left">工单流转记录</span>
+                            </button>
+                         
+                          <div></div>
+                        </div>
+
+                        <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample" >
+                          <div class="card-body" style="border:solid 1px #ddd" v-if="tasks.currentTask.curTaskLogs != ''">
+                            <ul class="nav nav-stacked">
+                              <li v-for="log in tasks.curTaskLogs"><a href="#">{{ log.support_provider_name + '-' + log.deal_user_name }} 
+                                <span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISH'}]" >{{ log.log_type | convertType }}</span>
+                              </a></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                     
+                  </div>
+
+                  
+              </div>
+
+              <div class="modal-footer">    
+                    <button type="button" class="btn  btn-default pull-left" data-toggle="modal" data-target="#modal-transit" data-dismiss="modal" v-on:click="doTransit">转派</button>
+                    <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal">回单</button>
+                  </div>
+              </div>
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+      </div>
+
+      <div class="modal fade in" id="modal-transit" style="display: none;">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title">转派工单</h4>
+              </div>
+              <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="box-body">
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">转派厂家</label>
+                        <div class="col-sm-10">
+                          <select class="form-control" v-model="tasks.toNextProvider">
+                            <option value="-1">请选择</option>
+                            <option v-for="provider in providers" v-bind:value="provider.id" v-bind:key="provider.id">{{ provider.provider_name }}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="box-body">
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">派单备注</label>
+                        <div class="col-sm-10">
+                          <textarea class="form-control" rows="3" placeholder="Enter ..." v-model="tasks.taskReply"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+               
+                <button type="button" class="btn  btn-primary" data-dismiss="modal" >确认转派</button>
+              </div>
+            </div>
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+        </div>
+
+      <div class="modal fade in" id="modal-reply" style="display: none;">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title">回复工单</h4>
+              </div>
+              <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="box-body">
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">回单备注</label>
+                        <div class="col-sm-10">
+                          <textarea class="form-control" rows="3" placeholder="Enter ...">{{ tasks.currentTask.remark }}</textarea>
+                        </div>
+                      </div>
+                    </div>
+                </form>
+              <div class="modal-footer">
+               
+                <button type="button" class="btn btn-primary" data-dismiss="modal">确认回复</button>
+              </div>
+            </div>
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+        </div>
 
     </section>
     <!-- /.content -->
+    <script type="text/javascript">
+        var userinfo = {
+                   uid:{{{ __user__.id }}},
+                   pid:{{{ __user__.support_provider.id }}}
+        };
+
+    </script>
+    <script src="/static/js/dashboard.js"></script>
 
 {% endblock %}

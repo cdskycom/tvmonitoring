@@ -12,10 +12,21 @@ class _const:
       self.__dict__[name] = value
 
 const = _const()
+
+# 工单状态常量
 const.STATUS_ACCEPT = 'ACCEPT'
 const.STATUS_DEALING = 'DEALING'
 const.STATUS_FINISHED = 'FINISHED'
 const.STATUS_ALL = 'ALL'
+#任务状态常量
 const.TASK_PENDING = 0
 const.TASK_FINISHED = 1
+
+# 工单处理标识常量
+const.DEALING_CREATE = 'CREATE'
+const.DEALING_REPLY = 'REPLY'
+const.DEALING_TRANSIT = 'TRANSIT'
+const.DEALING_FINISHED = 'FINISHED'
+
+# 返回消息常量
 const.RETURN_OK = 0

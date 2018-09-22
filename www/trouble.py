@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from orm import TroubleTicket, TroubleDealLog, TroubleTask
+from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTask, SupportProvider, session_scope
 from const import const
 import logging, time, datetime
 
@@ -49,5 +49,69 @@ def getAllTroubleCount(status):
 	return TroubleTicket.getTroubleCount(*filters)
 
 def getTaskCountByProvider(providerID):
-	filters = {TroubleTask.support_provider == providerID}
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
 	return TroubleTask.getTaskCount(*filters)
+
+def getTask(providerID):
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
+	return TroubleTask.getTask(*filters)
+
+def getTaskPage(page, items_perpage, providerID):
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
+	return TroubleTask.getTaskPage(page, items_perpage, *filters)
+
+def getDealLogByTrouble(troubleId):
+	return TroubleDealLog.getDealLogByTrouble(troubleId)
+
+def getProvider():
+	return SupportProvider.getAll()
+
+def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
+	res = dict()
+	with session_scope() as session:
+		#更新当前工单
+		task = session.query(TroubleTask).filter(TroubleTask.id==taskid).one()
+		task.status = const.TASK_FINISHED
+		task.reply = reply
+		task.endtime = datetime.datetime.now()
+
+		if(dealingtype != const.DEALING_FINISHED):
+			#生成下一个工单
+			trouble_ticket = task.trouble.id
+			support_provider = nextprovider
+			remark = reply
+			createtime = datetime.datetime.now()
+			assign_user = uid
+			newTask = TroubleTask(trouble_ticket=trouble_ticket, support_provider=support_provider,
+				remark=remark, createtime=createtime, assign_user=assign_user, status=0)
+			session.add(newTask)
+
+		#添加工程单处理记录
+		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
+		deal_user_name = user.name
+		support_provider_name = user.support_provider.provider_name
+		trouble_ticket_id = task.trouble.id
+		deal_user = uid
+		remark = reply
+		log_type = dealingtype
+		dealingLog = TroubleDealLog(trouble_ticket_id=trouble_ticket_id, deal_user=deal_user,remark=remark,
+			log_type=log_type, deal_user_name=deal_user_name, support_provider_name=support_provider_name)
+		session.add(dealingLog)
+
+		#更新工单状态
+		troubleTicketStatus = ''
+		if(dealingtype == const.DEALING_FINISHED):
+			troubleTicketStatus = const.STATUS_FINISHED
+		else:
+			troubleTicketStatus = const.STATUS_DEALING
+		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
+		trouble.status = troubleTicketStatus
+		trouble.deal_user = uid
+		trouble.deal_user_name = user.name
+		session.commit()
+		
+	res['returncode'] = const.RETURN_OK
+	res['message'] = '任务工单处理成功' + dealingtype
+	return res
+
+

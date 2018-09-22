@@ -1,4 +1,19 @@
-var baseUrl = "http://127.0.0.1:8088/api"
+var baseUrl = "http://127.0.0.1:8088/"
+var strLengthInTable = 50; //表格内显示文本最大长度
+
+TV_DateTimeFtt = {
+    formatter: function(timeStr){
+            var t = new Date(timeStr);
+            var month = t.getMonth() + 1;
+            var monthStr = month < 10 ? "0" + String(month): String(month);
+            var dateStr = t.getDate() < 10 ? "0" + String(t.getDate()): String(t.getDate());
+            var hourStr = t.getHours() < 10 ? "0" + String(t.getHours()): String(t.getHours());
+            var minuteStr = t.getMinutes() < 10 ? "0" + String(t.getMinutes()): String(t.getMinutes());
+
+
+            return t.getFullYear() + '-' + monthStr + '-' + dateStr + ' ' + hourStr + ':' + minuteStr;
+        }
+}
 
 function refresh() {
     var
@@ -12,6 +27,8 @@ function refresh() {
     }
     location.assign(url);
 }
+
+
 
 Vue.component('my-pagenation',{
     props:{

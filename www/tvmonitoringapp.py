@@ -8,7 +8,8 @@ from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 from coroweb import add_static, add_routes
 from config import configs
-import orm
+# import orm
+from orm import  get_dbengine
 from handlers import cookie2user, COOKIE_NAME
 import pdb
 
@@ -105,8 +106,8 @@ async def response_factory(app, handler):
 async def init(loop):
 	#初始化数据aiomysql数据，得到全局变量__engine
 
-	orm.get_dbengine(**configs.db)
-	
+	# orm.get_dbengine(**configs.db)
+	get_dbengine(**configs.db)
 	app = web.Application(loop=loop, middlewares=[logger_factory, response_factory, auth_factory])
 	init_jinja2(app)
 	# 此处需插入路径绑定

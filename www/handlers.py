@@ -397,7 +397,7 @@ def addTroubleTicket(*, report_channel, type, region, level, description,
 		create_user, create_user_name, deal_user, deal_user_name)
 
 # 获取工单统计数据，uid为登录用户id，pid为厂商id(suppor_provider)
-@get('/api/toubleticket/statistic/')
+@get('/api/toubleticket/statistic')
 def getTroubleStat(*, uid, pid):
 	#工单量
 	troubleCount = trouble.getAllTroubleCount(const.STATUS_ALL)
@@ -410,6 +410,36 @@ def getTroubleStat(*, uid, pid):
 
 	return dict(troubleCount=troubleCount, acptTroubleCount=acptTroubleCount, dealingTroubleCount=dealingTroubleCount,
 		taskCount=taskCount)
+
+@get('/api/toubleticket/gettask')
+def getTask(*, page, items_perpage, uid, pid):
+	page = int(page)
+	items_perpage = int(items_perpage)
+	taskCount = trouble.getTaskCountByProvider(pid)
+	totalPages = math.ceil(taskCount / items_perpage)
+	tasks = trouble.getTaskPage(page, items_perpage, pid)
+
+	return dict(totalitems=taskCount, totalpage=totalPages, tasks=tasks)
+
+@get('/api/troubleticket/getlogs')
+def getLogsByTrouble(*, troubleid):
+	return dict(logs=trouble.getDealLogByTrouble(troubleid))
+
+@get('/api/troubleticket/getprovider')
+def getProvider():
+	return dict(providers=trouble.getProvider())
+
+@get('/api/troubleticket/dealingtask')
+def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
+	#处理工单函数 
+	# dealingtype： REPLY-回单， TRANSIT- 转派, FINISHED-结单
+	# taskid -工单ID
+	# nextprovider-下个处理厂家
+	# reply - 工单处理备注
+
+	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, uid)
+
+
 
 
 
