@@ -1,0 +1,109 @@
+{% extends 'troublebase.html' %}
+
+{% block title %} 概览 {% endblock %}
+
+{% block beforehead %}
+
+
+{% endblock %}
+
+{% block content %}
+ <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        工单管理
+        <small>创建、编辑、统计</small>
+      </h1>
+    </section>
+
+    <!-- Main content -->
+    <section id="app" class="content container-fluid">
+        <div class="row">
+          <div class="col-xs-12">
+              <div class="margin"> 
+                <button type="button" class="btn btn-secondary">新建工单</button>
+                <button type="button" class="btn btn-secondary">编辑工单</button>
+                <button type="button" class="btn btn-secondary">批量派单</button>
+                <button type="button" class="btn btn-success">批量结单</button>
+                <div class="btn-group">
+                      <button type="button" class="btn btn-default btn-flat">所有工单</button>
+                      <button type="button" class="btn btn-default btn-flat dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                        <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                      </button>
+                      <ul class="dropdown-menu" role="menu">
+                        <li><a href="#">未完结工单</a></li>
+                        <li><a href="#">待分派工单</a></li>
+                      </ul>
+                    </div>
+              
+                <button type="button" class="btn btn-secondary pull-right"><i class="fa fa-fw fa-cloud-download"></i>导出工单</button>
+            </div>
+          </div>
+        </div>
+       
+
+        <div class="row">
+        <div class="col-xs-12">
+          <div class="box">
+            <div class="box-header">
+              <h3 class="box-title">工单列表</h3>
+
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body no-padding">
+              <table class="table">
+                <tbody>
+                <tr>
+                  <th><input type="checkbox"></th>
+                  <th style="width: 10px">ID</th>
+                  <th style="width: 130px">创建时间</th>
+                  <th style="width: 80px">故障级别</th>
+                  <th>区域</th>
+                  <th>故障现象</th>
+                  <th>影响范围</th>
+                  <th style="width: 80px">详情</th>
+                </tr>
+                <tr v-for="t in tasks.taskList">
+                  <td><input type="checkbox"></td>
+                  <td><span v-text="t.id"></span></td>
+                  <td><span >{{ t.createtime | DateTimeFtt }}</span></td>
+                  <td><span v-bind:class="['label', {'label-danger': t.trouble.level==0, 'label-warning': t.trouble.level==1, 'label-info': t.trouble.level==2}]" >{{ t.trouble.level | levelStr}}</span></td>
+                  <td><span v-text="t.trouble.region"></span></td>
+                  <td><span>{{ t.trouble.description | shortcutStr(strLengthInTable) }}</span></td>
+                  <td><span v-text="t.trouble.impact"></span></td>
+                  <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)">
+                        查看详情
+                      </button>
+                  </td>
+                </tr>
+               
+              </tbody></table>
+            </div>
+            <div class="box-footer clearfix">
+              
+            <my-pagenation v-bind:items-per-page="tasks.itemsPerPage" v-bind:total-page="tasks.totalPage" v-bind:current-page="tasks.currentPage" v-bind:total-items="tasks.totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
+              
+            </div>
+
+            <!-- /.box-body -->
+          </div>
+          <!-- /.box -->
+        </div>
+      </div>
+
+      
+    </section>
+    <!-- /.content -->
+    <script type="text/javascript">
+        var userinfo = {
+                   uid:{{{ __user__.id }}},
+                   pid:{{{ __user__.support_provider.id }}},
+                   permission:'{{{ __user__.permission }}}'
+        };
+        
+
+    </script>
+    <script src="/static/js/tickets.js"></script>
+
+{% endblock %}

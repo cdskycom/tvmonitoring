@@ -79,16 +79,12 @@ scratch. This page gets rid of all links and provides the needed markup only.
             </a>
             <ul class="dropdown-menu">
               <!-- The user image in the menu -->
-              <li class="user-header">
-
-                <p>
-                  当前值班: {{{ __user__.name }}}
-                  
-                </p>
-                <p>
-                  支撑单位: {{{ __user__.support_provider.provider_name }}}
-                  <small>Member since Nov. 2018</small>
-                </p>
+              <li class="user-header" style="text-align: left">
+                
+                  <p><small>支撑单位: {{{ __user__.support_provider.provider_name }}}</small></p>
+                  <p><small>单位联系人: {{{ __user__.support_provider.contact + '-' + __user__.support_provider.contact_phone  }}}</small></p>
+                
+              
               </li>
               <!-- Menu Body -->
              
@@ -135,9 +131,9 @@ scratch. This page gets rid of all links and provides the needed markup only.
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">主菜单</li>
         <!-- Optionally, you can add icons to the links -->
-        <li ><a href="#"><i class="fa fa-link"></i> <span>工单概览</span></a></li>
-        <li ><a href="#"><i class="fa fa-link"></i> <span>任务处理</span></a></li>
-        <li class="treeview acitve">
+        <li ><a href="/trouble/dashboard"><i class="fa fa-dashboard"></i> <span>任务概览</span></a></li>
+        <li ><a href="/trouble/tickets"><i class="fa fa-edit"></i> <span>工单管理</span></a></li>
+        <!-- <li class="treeview acitve">
           <a href="#"><i class="fa fa-link"></i> <span>Multilevel</span>
             <span class="pull-right-container">
                 <i class="fa fa-angle-left pull-right"></i>
@@ -147,7 +143,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
             <li><a href="/manage/trouble">Link in level 2</a></li>
             <li><a href="/manage/trouble">Link in level 2</a></li>
           </ul>
-        </li>
+        </li> -->
       </ul>
       <!-- /.sidebar-menu -->
     </section>

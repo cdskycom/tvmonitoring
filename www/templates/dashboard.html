@@ -11,8 +11,8 @@
  <!-- Content Header (Page header) -->
     <section class="content-header">
       <h1>
-        工单概览
-        <small>工单数、任务数</small>
+        任务概览
+        <small>工单、任务</small>
       </h1>
     </section>
 
@@ -70,7 +70,7 @@
             <div class="inner">
               <h3>{{taskCount}}</h3>
 
-              <p>待办任务</p>
+              <p>您的待办任务</p>
             </div>
             <div class="icon">
               <i class="fa fa-fw fa-clock-o"></i>
@@ -291,7 +291,7 @@
                           <div class="card-body" style="border:solid 1px #ddd" v-if="tasks.currentTask.curTaskLogs != ''">
                             <ul class="nav nav-stacked">
                               <li v-for="log in tasks.curTaskLogs"><a href="#">{{ log.support_provider_name + '-' + log.deal_user_name }} 
-                                <span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISH'}]" >{{ log.log_type | convertType }}</span>
+                                <span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISHED'}]" >{{ log.log_type | convertType }}</span>
                               </a></li>
                             </ul>
                           </div>
@@ -306,6 +306,7 @@
 
               <div class="modal-footer">    
                     <button type="button" class="btn  btn-default pull-left" data-toggle="modal" data-target="#modal-transit" data-dismiss="modal" v-on:click="doTransit">转派</button>
+                    <button type="button" class="btn  btn-success" data-dismiss="modal" v-on:click="dealTask('FINISHED')" v-if="hasFinishedPermission">结单</button>
                     <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal">回单</button>
                   </div>
               </div>
@@ -347,7 +348,7 @@
               </div>
               <div class="modal-footer">
                
-                <button type="button" class="btn  btn-primary" data-dismiss="modal" >确认转派</button>
+                <button type="button" class="btn  btn-primary" data-dismiss="modal" v-on:click="dealTask('TRANSIT')" >确认转派</button>
               </div>
             </div>
             <!-- /.modal-content -->
@@ -369,28 +370,47 @@
                       <div class="form-group">
                         <label  class="col-sm-2 control-label">回单备注</label>
                         <div class="col-sm-10">
-                          <textarea class="form-control" rows="3" placeholder="Enter ...">{{ tasks.currentTask.remark }}</textarea>
+                          <textarea class="form-control" rows="3" placeholder="Enter ..." v-model="tasks.taskReply"></textarea>
                         </div>
                       </div>
                     </div>
                 </form>
               <div class="modal-footer">
-               
-                <button type="button" class="btn btn-primary" data-dismiss="modal">确认回复</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="dealTask('REPLY')">确认回复</button>
               </div>
             </div>
             <!-- /.modal-content -->
           </div>
           <!-- /.modal-dialog -->
         </div>
+      </div>
+
+      <div class="modal fade in" id="modal-message" style="display: none;">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title"><span>{{ messageTitle }}</span></i></h4>
+              </div>
+              <div class="modal-body">
+                <p><span>{{ message }}</span></p>
+             
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+        </div>
+      </div>
 
     </section>
     <!-- /.content -->
     <script type="text/javascript">
         var userinfo = {
                    uid:{{{ __user__.id }}},
-                   pid:{{{ __user__.support_provider.id }}}
+                   pid:{{{ __user__.support_provider.id }}},
+                   permission:'{{{ __user__.permission }}}'
         };
+        
 
     </script>
     <script src="/static/js/dashboard.js"></script>

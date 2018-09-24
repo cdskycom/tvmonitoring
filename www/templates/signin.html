@@ -44,16 +44,17 @@
                         that.errormsg = res.data.message;
                         return
                     }
-                    if(that.logintype == 'admin') {
-                        if (res.data.is_admin){
-                            location.assign('/manage/trouble');
-                        }else{
-                            alert('oho 你还不是管理员！');
-                        }
-                    }else{
+                    location.assign('/');
+                    // if(that.logintype == 'admin') {
+                    //     if (res.data.is_admin){
+                    //         location.assign('/manage/trouble');
+                    //     }else{
+                    //         alert('oho 你还不是管理员！');
+                    //     }
+                    // }else{
 
-                        location.assign('/');
-                    }
+                    //     location.assign('/');
+                    // }
                 });
             }
         }
@@ -77,12 +78,12 @@
                 <div class="uk-margin">
                     <input class="uk-input" type="password" v-model="password" placeholder="密码">
                 </div>
-                <div class="uk-margin">
+               <!--  <div class="uk-margin">
                      <select class="uk-select" v-model="logintype">
                         <option value="engineer">巡检工程师</option>
                         <option value="admin">管理员</option>
                     </select>
-                </div>
+                </div> -->
 
                 <div class="uk-form-row">
                     <button type="submit" class="uk-button uk-button-primary">登录</button>

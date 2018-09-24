@@ -3,6 +3,7 @@
 from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTask, SupportProvider, session_scope
 from const import const
 import logging, time, datetime
+from apis import APIValueError, APIError
 
 
 def addTroubleTicket(report_channel, type, region, level, description, 
@@ -100,18 +101,28 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 
 		#更新工单状态
 		troubleTicketStatus = ''
+		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
+		
 		if(dealingtype == const.DEALING_FINISHED):
+
+			if not checkPermission(user.permission,'FIN'):
+				raise APIError('结单失败', 'permission', '你没有该权限')
 			troubleTicketStatus = const.STATUS_FINISHED
+			trouble.endtime = datetime.datetime.now()
 		else:
 			troubleTicketStatus = const.STATUS_DEALING
-		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
 		trouble.status = troubleTicketStatus
 		trouble.deal_user = uid
 		trouble.deal_user_name = user.name
+		trouble.dealingtime = datetime.datetime.now()
 		session.commit()
-		
+
 	res['returncode'] = const.RETURN_OK
 	res['message'] = '任务工单处理成功' + dealingtype
 	return res
 
+# 通过用户或分组的权限字符串检查特定权限
+def checkPermission(userPermission, needed):
+	permissionlist = userPermission.split('|')
+	return needed in permissionlist
 

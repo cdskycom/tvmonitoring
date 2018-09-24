@@ -75,6 +75,7 @@ class User(Base):
 	name = Column(String(100))
 	is_admin = Column(Integer)
 	support_provider_id = Column(Integer, ForeignKey('support_provider.id'))
+	permission = Column(String(100))
 	support_provider = relationship("SupportProvider", back_populates="users")
 
 	def __init__(self, account, password, name, is_admin, support_provider):
@@ -213,6 +214,7 @@ class TroubleTicket(Base):
 	create_user_name = Column(String(45))
 	deal_user = Column(Integer, ForeignKey('users.id'))
 	deal_user_name = Column(String(45))
+	dealingtime = Column(DateTime)
 
 	tasks = relationship("TroubleTask", back_populates="trouble")
 

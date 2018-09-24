@@ -49,6 +49,7 @@ def cookie2user(cookie_str):
 			logging.info('invalid sha1')
 			return None
 		user['password'] = '******'
+
 		return user
 	except Exception as e:
 		logging.exception(e)
@@ -69,9 +70,12 @@ def signout(request):
 
 @get('/')
 def index(request):
-	logging.info('enter index...')
+	# logging.info('enter index...')
+	# return {
+	# 	'__template__': 'index.html'
+	# }
 	return {
-		'__template__': 'index.html'
+		'__template__': 'dashboard.html'
 	}
 @get('/manage')
 def manageIndex(request):
@@ -381,10 +385,15 @@ def getOptTool(request):
 		'__template__': 'opttool.html'
 	}
 
-@get('/manage/trouble')
-def getTroubleTickets(request):
+@get('/trouble/dashboard')
+def getDashboard(request):
 	return {
 		'__template__': 'dashboard.html'
+	}
+@get('/trouble/tickets')
+def getTroubleTickets(request):
+	return {
+		'__template__': 'tickets.html'
 	}
 
 @post('/api/addtroubleticket')
@@ -429,9 +438,10 @@ def getLogsByTrouble(*, troubleid):
 def getProvider():
 	return dict(providers=trouble.getProvider())
 
-@get('/api/troubleticket/dealingtask')
+#任务工单接口
+@post('/api/troubleticket/dealingtask')
 def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
-	#处理工单函数 
+	
 	# dealingtype： REPLY-回单， TRANSIT- 转派, FINISHED-结单
 	# taskid -工单ID
 	# nextprovider-下个处理厂家
