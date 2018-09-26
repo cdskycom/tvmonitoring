@@ -16,7 +16,9 @@
 				confirmpassword:'',
 				validateerror:false,
 				validatemessage:'',
-				newpassword:''
+				newpassword:'',
+				providers: '', 
+				support_provider_id: -1, //用户所属支撑厂家ID
 			},
 			methods:{
 				submit:function(event){
@@ -29,6 +31,7 @@
 							return
 						}
 						this.user.password = CryptoJS.SHA1(this.user.account + ':' + this.user.password).toString();
+						
 
 					}
 					axios.post(action,this.user).then(function(res){
@@ -64,6 +67,16 @@
 				}
 				
 			},
+			created: function () {
+    	
+		    	that = this;
+				var url = baseUrl + 'api/troubleticket/getprovider';
+				axios.get(url).then(function(res){
+					that.providers = res.data.providers;
+					
+				});
+				user.support_provider_id = user.support_provider.id;
+		  	},
 			filters:{
 				
 			}
@@ -79,7 +92,8 @@
 				account:'',
 				password:'',
 				name:'',
-				is_admin:0
+				is_admin: 0,
+				support_provider_id: -1
 			},'add')
 		}
 
@@ -111,6 +125,13 @@
 
         <div class="uk-margin">
             <label>显示名:</label><input class="uk-input" type="text" v-model="user.name" placeholder="显示名">
+        </div>
+        <div class="uk-margin">
+        	<label>支撑单位:</label>
+        		<select class="form-control" v-model="user.support_provider_id">
+                            <option value="-1" selected="">请选择</option>
+                            <option v-for="provider in providers" v-bind:value="provider.id" v-bind:key="provider.id">{{ provider.provider_name }}</option>
+                </select>
         </div>
         <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
             <label><input class="uk-radio" type="radio" name="adminradio" value="0" v-model="user.is_admin">巡检工程师</label>

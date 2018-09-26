@@ -2,26 +2,52 @@
 var vm = new Vue({
 	el:'#app',
 	data:{
-		troubleCount: 0,
-		acptTroubleCount: 0,
-		dealingTroubleCount: 0,
-		taskCount: 0,
-		tasks: {
-			itemsPerPage: 10,
-			totalPage: 1,
-			currentPage: 1,
-			totalItems: 0,
-			taskList: [],
-			currentTask: '',
-			curTaskLogs: '',
-			toNextProvider: -1, //派单到下一个厂家的ID
-			taskReply: ''
-		},
-		providers: '',
 		validateerror: false,
 		validatemessage:'',
-		messageTitle: '',  //消息弹窗标题
-		message: ''		   //消息弹窗内容
+		messageTitle: '',
+		message: '',
+		troubleWindowTitle: '创建工单', //创建、查看、编辑工单modal的标题
+		troublesTitle: '所有工单', //工单列表的标题
+		curTroubleLogs: '',
+		providers: '',
+		toNextProvider: '',  //接收工单的厂家id
+		transitReply: '',  //派单备注
+		checkedTroubles: [], //复选框选中的工单号列表
+		newTrouble: {
+			report_channel: '',
+			type: '',
+			region: '',
+			level: '',
+			description: '',
+			impact: '',
+			startTime: '',
+			endTime: '',
+			custid: '',
+			mac: '',
+			contact: '',
+			contact_phone: '',
+			status: 'ACCEPT',
+			create_user: '',
+			create_user_name: '',
+			deal_user: '',
+			deal_user_name: '',
+			dealingtime: ''
+			
+		},
+		troubles: {
+			currentPage: 1,
+			itemsPerPage: 10,
+			status: 'ALL',  //ALL- 所有工单，ACCEPT-已创建未分派，DEALING-处理中，FINISHED-已完成
+			totalItems: 0,
+			totalPage: 1,
+			troubleList: [],
+			viewTrouble: false,
+			editTrouble: false,
+			addTrouble: false,
+
+		},
+		
+		
 	},
 	computed:{
 		hasFinishedPermission:function(){
@@ -29,52 +55,57 @@ var vm = new Vue({
 		}
 	},
 	methods:{
-		submit:function(event){
-			
-		},
-		setCurrentTask:function(t){
-			// this.tasks.currentTask = t;
-		},
-		taskDetail:function(t){
+		initNewTrouble:function(){
 			that = this;
-			that.tasks.currentTask = t;
-			that.tasks.curTaskLogs = '';
-			$('#collapseOne').collapse('hide');
+			console.log('initnewtrouble...');
+			that.newTrouble = {
+				report_channel: '',
+				type: '',
+				region: '',
+				level: '',
+				description: '',
+				impact: '',
+				startTime: '',
+				endTime: '',
+				custid: '',
+				mac: '',
+				contact: '',
+				contact_phone: '',
+				status: 'ACCEPT',
+				create_user: '',
+				create_user_name: '',
+				deal_user: '',
+				deal_user_name: '',
+				dealingtime: '',
 
+			};
+			that.curTroubleLogs = '';
+			that.troubles.addTrouble = true;
+			that.troubles.editTrouble = false;
+			that.troubles.viewTrouble = false;
+			that.troubleWindowTitle = '创建工单';
 		},
-		getLogs:function(id){
-			if(this.tasks.curTaskLogs == ''){
-				that = this;
-				var url = baseUrl + 'api/troubleticket/getlogs?' + 'troubleid=' + id;
-				axios.get(url).then(function(res){
-					that.tasks.curTaskLogs = res.data.logs;
-				});
-			}
-
-		},
-		doTransit:function(){
+		createTroubleTicket:function(event){
 			that = this;
-			var url = baseUrl + 'api/troubleticket/getprovider';
-			axios.get(url).then(function(res){
-				that.providers = res.data.providers;
-				console.log(this.providers);
-			});
-
-		},
-		//任务工单处理
-		dealTask:function(t){
-			that = this;
-			//回单直接回给派单人所在部门,转派工单则直接使用选择的厂家
-			nextprovider = this.tasks.toNextProvider;
-			if(t == 'REPLY'){
-				nextprovider = this.tasks.currentTask.assigner.support_provider.id;
-			}
-			axios.post(baseUrl + 'api/troubleticket/dealingtask',{
-					dealingtype: t,
-					taskid:this.tasks.currentTask.id,
-					nextprovider: nextprovider,
-					reply: this.tasks.taskReply,
-					uid: userinfo.uid
+			var url = baseUrl + "api/addtroubleticket";
+			axios.post(url,{
+					report_channel: this.newTrouble.report_channel,
+					type: this.newTrouble.type,
+					region: this.newTrouble.region,
+					level: this.newTrouble.level,
+					description: this.newTrouble.description,
+					impact: this.newTrouble.impact,
+					startTime: this.newTrouble.startTime,
+					custid: this.newTrouble.custid,
+					mac: this.newTrouble.mac,
+					contact: this.newTrouble.contact,
+					contact_phone: this.newTrouble.contact_phone,
+					status: this.newTrouble.status,
+					create_user: userinfo.uid,
+					create_user_name: userinfo.username,
+					deal_user: userinfo.uid,
+					deal_user_name: userinfo.username,
+					dealingtime: '',
 				}).then(function(res){
 					if(res.data.error){
 					
@@ -87,35 +118,180 @@ var vm = new Vue({
 						
 					}
 					that.message = res.data.message;
-					$('#modal-message').modal('show');
-					$('#modal-message').on('hidden.bs.modal', function (e) {
-						location.reload();
-					});
+					
+					this.showResultBox();
 				
 			});
+
+			
+		},
+		showResultBox:function(){
+			$('#modal-message').modal('show');
+			$('#modal-message').on('hidden.bs.modal', function (e) {
+				if(that.validateerror && (that.troubles.viewTrouble || that.troubles.editTrouble || that.troubles.addTrouble)){
+					$('#modal-createtrouble').modal('show');
+				}else{
+					location.reload();
+				}
+			});
+		},
+		
+		troubleDetail:function(t){
+			that = this;
+			that.troubles.viewTrouble = true;
+			that.troubles.editTrouble = false;
+			that.troubles.addTrouble = false;
+			that.troubleWindowTitle = '查看工单';
+			that.newTrouble = t;
+			that.curTroubleLogs = '';
+			// $('#modal-createtrouble').on('hidden.bs.modal', function (e) {
+			// 			that.initNewTrouble();
+			// 		});
+			//$('#collapseOne').collapse('hide');
+
+		},
+		doEditTrouble:function(){
+			that = this;
+			that.troubles.viewTrouble = false;
+			that.troubles.editTrouble = true;
+			that.troubles.addTrouble = false;
+			that.troubleWindowTitle = '编辑工单';
+		},
+
+		changeStatus:function(status){
+			that = this;
+			that.troubles.status = status;
+			if(status == 'ACCEPT'){
+				that.troublesTitle = '待分派工单';
+			}else if(status == 'DEALING'){
+				that.troublesTitle = '在途工单';
+			}else if(status == 'FINISHED'){
+				that.troublesTitle = '已完成工单';
+			}else{
+				that.troublesTitle = '所有工单';
+			}
+			var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+			axios.get(troubleUrl).then(function(res){
+				that.troubles.totalItems = res.data.totalitems;
+				that.troubles.totalPage = res.data.totalpage;
+				that.troubles.troubleList = res.data.troubles;
+
+			});
+		},
+
+		getLogs:function(id){
+			if(this.curTroubleLogs == ''){
+				
+				that = this;
+				var url = baseUrl + 'api/troubleticket/getlogs?' + 'troubleid=' + id;
+				axios.get(url).then(function(res){
+					that.curTroubleLogs = res.data.logs;
+				});
+				
+			}
+			
+		},
+
+		doTransit:function(){
+			that = this;
+			var url = baseUrl + 'api/troubleticket/getprovider';
+			axios.get(url).then(function(res){
+				that.providers = res.data.providers;
+				
+			});
+
+		},
+		//任务工单处理
+		dealTrouble:function(t, flag){
+			that = this;
+			//回单直接回给派单人所在部门,转派工单则直接使用选择的厂家
+			nextprovider = this.toNextProvider;
+			reply = this.transitReply;
+			if(t == 'FINISHED'){
+				reply = ''; //结单不提供回复备注
+			}
+			troubles = [this.newTrouble.id];
+			if(flag == 'batch'){
+				console.log('checkedlength:' + this.checkedTroubles.length);
+				if(this.checkedTroubles.length < 1){
+					that.validateerror = true;
+					that.messageTitle = "处理失败";
+					that.message = "请至少选择一个工单";
+					this.showResultBox();
+					return;
+				}else{
+					troubles = this.checkedTroubles;
+				}
+
+			}
+			
+			var  params = new URLSearchParams();
+			params.append('dealingtype',t);			
+			params.append('nextprovider',nextprovider);
+			params.append('reply',reply);
+			params.append('uid',userinfo.uid);
+			params.append('troubles',troubles);
+			axios.post(baseUrl + 'api/troubleticket/dealingtroublebatch', params
+				// {
+				// 	troubleid: this.newTrouble.id,
+				// 	dealingtype: t,
+				// 	nextprovider: nextprovider,
+				// 	reply: reply,
+				// 	uid: userinfo.uid
+				// }
+				).then(function(res){
+					console.log(res);
+					if(res.data.error){
+					
+						that.validateerror = true;
+						that.messageTitle = "处理失败";
+						
+					}else{
+						that.validateerror = false;
+						that.messageTitle = "处理成功"
+						
+					}
+					that.message = res.data.message;
+					
+				
+				}).catch(function(error){
+					that.validateerror = true;
+					that.messageTitle = "处理失败";
+					if(error.response){
+						that.message = "服务器处理失败" + error.response.status;
+					}else{
+						that.message = error.message;
+					}
+					return Promise.reject(error);
+				});
+				
+			
 		},
 
 		handletopage:function(playload){
 				that = this;
-				this.tasks.currentPage = playload.page;
-				var url = baseUrl + 'api/toubleticket/gettask?page=' + this.tasks.currentPage + '&items_perpage=' + 
-						this.tasks.itemsPerPage + '&uid=' + userinfo.uid + '&pid=' + userinfo.pid;
-				
-				axios.get(url).then(function(res){
-					that.tasks.taskList = res.data.tasks;
+				this.troubles.currentPage = playload.page;
+
+				var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+					this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+				axios.get(troubleUrl).then(function(res){
+					that.troubles.troubleList = res.data.troubles;
+
 				});
+				
 
 		},
 		handleitemschange:function(playload){
 			that = this;
-			this.tasks.itemsPerPage = playload.newitems;
+			this.troubles.itemsPerPage = playload.newitems;
 			this.currentPage = 1;
-			var url = baseUrl + 'api/toubleticket/gettask?page=' + this.tasks.currentPage + '&items_perpage=' + 
-						this.tasks.itemsPerPage + '&uid=' + userinfo.uid + '&pid=' + userinfo.pid;
-			axios.get(url).then(function(res){
-				that.tasks.totalItems = res.data.totalitems;
-				that.tasks.totalPage = res.data.totalpage;
-				that.tasks.taskList = res.data.tasks;
+			var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+				this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+			axios.get(troubleUrl).then(function(res){
+				that.troubles.totalItems = res.data.totalitems;
+				that.troubles.totalPage = res.data.totalpage;
+				that.troubles.troubleList = res.data.troubles;
 
 			});
 
@@ -123,22 +299,17 @@ var vm = new Vue({
 		
 	},
 
+	//初始化页面数据
 	created: function () {
-    	var url = baseUrl + 'api/toubleticket/statistic?' + 'uid=' + userinfo.uid + '&pid=' + userinfo.pid;
-    	that = this
-		axios.get(url).then(function(res){
-			that.troubleCount = res.data.troubleCount;
-			that.acptTroubleCount = res.data.acptTroubleCount;
-			that.dealingTroubleCount = res.data.dealingTroubleCount;
-			that.taskCount = res.data.taskCount;
-			
-		});
-		var taskUrl = baseUrl + 'api/toubleticket/gettask?page=' + this.tasks.currentPage + '&items_perpage=' + 
-			this.tasks.itemsPerPage + '&uid=' + userinfo.uid + '&pid=' + userinfo.pid;
-		axios.get(taskUrl).then(function(res){
-			that.tasks.totalItems = res.data.totalitems;
-			that.tasks.totalPage = res.data.totalpage;
-			that.tasks.taskList = res.data.tasks;
+    	
+    	that = this;
+		var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+		axios.get(troubleUrl).then(function(res){
+			that.troubles.totalItems = res.data.totalitems;
+			that.troubles.totalPage = res.data.totalpage;
+			that.troubles.troubleList = res.data.troubles;
+
 		});
   	},
 	filters:{
@@ -151,6 +322,14 @@ var vm = new Vue({
 				case '1': return '一般故障';
 				case '2': return '感知问题';
 				default: return '未知级别';
+			}
+		},
+		statusStr:function(str){
+			switch(str){
+				case 'ACCEPT': return '待分派';
+				case 'DEALING': return '在途';
+				case 'FINISHED': return '已完成';
+				default: return '未知状态';
 			}
 		},
 		//长文本截取过滤器
@@ -167,7 +346,7 @@ var vm = new Vue({
 				case 'REPLY': return '回复工单';
 				case 'TRANSIT': return '转派工单';
 				case 'FINISHED': return '结束工单';
-				default: return '位置动作';
+				default: return '未知动作';
 			}
 		}
 		

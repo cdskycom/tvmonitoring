@@ -1,5 +1,5 @@
 var baseUrl = "http://127.0.0.1:8088/"
-var strLengthInTable = 50; //表格内显示文本最大长度
+var strLengthInTable = 30; //表格内显示文本最大长度
 
 TV_DateTimeFtt = {
     formatter: function(timeStr){

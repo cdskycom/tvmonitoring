@@ -116,7 +116,7 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 # 添加用户
 @post('/api/users')
-def api_register_user(*, account, password, name, is_admin):
+def api_register_user(*, account, password, name, is_admin, support_provider_id):
 	logging.info('添加用户的密码: %s' % password)
 	if not account or not account.strip():
 		raise APIValueError('account','账号不能为空')
@@ -126,13 +126,15 @@ def api_register_user(*, account, password, name, is_admin):
 		raise APIValueError('password','密码不能为空')
 	if not name or not name.strip():
 		raise APIValueError('name','用户名不能为空')
+	if not support_provider_id or support_provider_id < 1:
+		raise APIValueError('support_provider','支撑单位不能为空')
 
 	filters = {User.account == account}
 	users = User.getAll(*filters)
 	if len(users) > 0:
 		raise APIError('添加用户失败', 'account', '用户账号已经存在')
 	sha1_passwd = '%s:%s' % (account, password)
-	user = User(account, hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), name, is_admin)
+	user = User(account, hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), name, is_admin, support_provider_id)
 	user.save()
 	res = dict()
 	res['returncode'] = const.RETURN_OK
@@ -194,7 +196,6 @@ def api_update_user(id, request, *, account, password, name, is_admin):
 def api_reset_user(id, request, *, newpassword):
 	if not newpassword  or not newpassword.strip():
 		raise APIValueError('account','密码不能为空')
-	
 	user = User.getUserById(id)
 	if not user:
 		raise APIValueError('account','获取用户信息失败')
@@ -405,6 +406,17 @@ def addTroubleTicket(*, report_channel, type, region, level, description,
 		impact, startTime, custid, mac, contact, contact_phone, 
 		create_user, create_user_name, deal_user, deal_user_name)
 
+@get('/api/troubleticket/gettrouble')
+def getTrouble(*, page, items_perpage, status):
+	page = int(page)
+	items_perpage = int(items_perpage)
+	troubleCount = trouble.getAllTroubleCount(status) 
+	totalPages = math.ceil(troubleCount / items_perpage)
+	troubles = trouble.getTroublePageByStatus(page, items_perpage, status)
+
+	return dict(totalitems=troubleCount, totalpage=totalPages, troubles=troubles)
+
+
 # 获取工单统计数据，uid为登录用户id，pid为厂商id(suppor_provider)
 @get('/api/toubleticket/statistic')
 def getTroubleStat(*, uid, pid):
@@ -438,7 +450,7 @@ def getLogsByTrouble(*, troubleid):
 def getProvider():
 	return dict(providers=trouble.getProvider())
 
-#任务工单接口
+#任务处理接口
 @post('/api/troubleticket/dealingtask')
 def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
 	
@@ -448,6 +460,27 @@ def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
 	# reply - 工单处理备注
 
 	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, uid)
+
+#工单直接处理接口
+@post('/api/troubleticket/dealingtrouble')
+def dealingTrouble(*,troubleid, dealingtype, nextprovider, reply, uid):
+	
+	# dealingtype： TRANSIT- 转派, FINISHED-结单
+	# nextprovider-下个处理厂家
+	# reply - 工单处理备注
+
+	return trouble.dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid)
+
+#工单直接处理接口
+@post('/api/troubleticket/dealingtroublebatch')
+def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
+	
+	# dealingtype： TRANSIT- 转派, FINISHED-结单
+	# nextprovider-下个处理厂家
+	# reply - 工单处理备注
+	troubleList = troubles.split(',')
+	for troubleid in troubleList:
+		trouble.dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid)
 
 
 

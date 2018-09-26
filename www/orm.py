@@ -78,12 +78,12 @@ class User(Base):
 	permission = Column(String(100))
 	support_provider = relationship("SupportProvider", back_populates="users")
 
-	def __init__(self, account, password, name, is_admin, support_provider):
+	def __init__(self, account, password, name, is_admin, support_provider_id):
 		self.account = account
 		self.password = password
 		self.name = name
 		self.is_admin = is_admin
-		self.support_provider = support_provider
+		self.support_provider_id = support_provider_id
 
 	# 查询用户信息，支持提供字符串过滤参数(filter1, filter2 ...)
 	@classmethod
@@ -137,12 +137,13 @@ class User(Base):
 		with session_scope() as session:
 			
 			user = session.query(User).filter(User.id == id).one()
-			result = query_to_dict(user)
+			# result = query_to_dict(user)
+			result = user.to_dict()
 		result['password'] = '******'
 		return 	result
 	
 	@classmethod
-	def updateUser(self, id, name, is_admin, support_provider):
+	def updateUser(self, id, name, is_admin):
 		
 		with session_scope() as session:
 			
@@ -150,9 +151,9 @@ class User(Base):
 			# logging.info('修改前的user： %s : %s : %s' % (user.account, user.name, user.password))
 			user.name = name
 			user.is_admin = is_admin
-			user.support_provider = support_provider
+			
 			session.commit()
-			result = query_to_dict(user)
+			result = user.to_dict()
 		return result	
 
 	@classmethod
@@ -165,7 +166,7 @@ class User(Base):
 			logging.info('密码: %s' % password)
 			user.password = password
 			session.commit()
-			result = query_to_dict(user)
+			result = user.to_dict()
 		return result	
 
 	@classmethod
@@ -250,6 +251,23 @@ class TroubleTicket(Base):
 		
 		return troubleCount
 
+	@classmethod
+	def getTroublePage(self, page, items_perpage, *filters):
+		with session_scope() as session:
+			
+			offset = (page - 1) * items_perpage
+			troubles = session.query(TroubleTicket).filter(*filters).limit(items_perpage).offset(offset)
+			result = []
+			for trouble in troubles:
+				result.append(trouble.to_dict())
+		return result
+
+	def to_dict(self):
+		from schema import TroubleTicketSchema
+		trouble_schema = TroubleTicketSchema()
+		return trouble_schema.dump(self).data
+
+
 
 # 工单处理日志model
 class TroubleDealLog(Base):
@@ -264,6 +282,7 @@ class TroubleDealLog(Base):
 	next_deal_user_name = Column(String(45))
 	log_type = Column(String(45))
 	support_provider_name = Column(String(45))
+	createtime = Column(DateTime)
 
 	@classmethod
 	def getDealLogByTrouble(self,troubleId):

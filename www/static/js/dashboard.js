@@ -57,7 +57,7 @@ var vm = new Vue({
 			var url = baseUrl + 'api/troubleticket/getprovider';
 			axios.get(url).then(function(res){
 				that.providers = res.data.providers;
-				console.log(this.providers);
+				
 			});
 
 		},
@@ -69,11 +69,15 @@ var vm = new Vue({
 			if(t == 'REPLY'){
 				nextprovider = this.tasks.currentTask.assigner.support_provider.id;
 			}
+			reply = this.tasks.taskReply;
+			if(t == 'FINISHED'){
+				reply = ''; //结单不提供回复备注
+			}
 			axios.post(baseUrl + 'api/troubleticket/dealingtask',{
 					dealingtype: t,
 					taskid:this.tasks.currentTask.id,
 					nextprovider: nextprovider,
-					reply: this.tasks.taskReply,
+					reply: reply,
 					uid: userinfo.uid
 				}).then(function(res){
 					if(res.data.error){
@@ -123,6 +127,7 @@ var vm = new Vue({
 		
 	},
 
+	//初始化页面数据
 	created: function () {
     	var url = baseUrl + 'api/toubleticket/statistic?' + 'uid=' + userinfo.uid + '&pid=' + userinfo.pid;
     	that = this

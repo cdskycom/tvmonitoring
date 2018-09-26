@@ -10,7 +10,7 @@ def addTroubleTicket(report_channel, type, region, level, description,
 		impact, startTime, custid, mac, contact, contact_phone, 
 		create_user, create_user_name, deal_user, deal_user_name):
 	logging.info('创建工单，创建人: %s' % create_user_name)
-	if not report_channel or not account.strip():
+	if not report_channel or not report_channel.strip():
 		raise APIValueError('report_channel','上报渠道不能为空')
 	if not type or not type.strip():
 		raise APIValueError('trouble_type','故障类型不能为空')
@@ -33,11 +33,18 @@ def addTroubleTicket(report_channel, type, region, level, description,
 	except Exception as e:
 		raise APIValueError('datetime','故障日期格式不正确')
 	
-	troubleTicket = TroubleTicket(report_channel, type, region, level, description, 
-		impact, startTime, custid, mac, contact, contact_phone, 
-		create_user, create_user_name, deal_user, deal_user_name)
+	with session_scope() as session:
+		troubleTicket = TroubleTicket(report_channel, type, region, level, description, 
+			impact, startTime, custid, mac, contact, contact_phone, 
+			create_user, create_user_name, deal_user, deal_user_name)
+		#添加工单处理日志
+		session.add(troubleTicket)
+		session.flush()
+		user = session.query(User).join(User.support_provider).filter(User.id==deal_user).one()
+		dealingLog = addTroubleLog(user, troubleTicket.id, '', const.DEALING_CREATE)
+		session.add(dealingLog)
+		session.commit()
 
-	troubleTicket.save()
 	res = dict()
 	res['returncode'] = const.RETURN_OK
 	res['message'] = '故障工单添加成功'
@@ -48,6 +55,13 @@ def getAllTroubleCount(status):
 	if status.upper() != const.STATUS_ALL:
 		filters = {TroubleTicket.status == status}
 	return TroubleTicket.getTroubleCount(*filters)
+
+def getTroublePageByStatus(page, items_perpage, status):
+	filters = {}
+	if status.upper() != const.STATUS_ALL:
+		filters = {TroubleTicket.status == status}
+	return TroubleTicket.getTroublePage(page, items_perpage, *filters)
+
 
 def getTaskCountByProvider(providerID):
 	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
@@ -67,6 +81,46 @@ def getDealLogByTrouble(troubleId):
 def getProvider():
 	return SupportProvider.getAll()
 
+def dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid):
+	res = dict()
+	#生成任务
+	with session_scope() as session:
+		if(dealingtype != const.DEALING_FINISHED):
+			#生成下一个任务
+			createtime = datetime.datetime.now()
+			assign_user = uid
+			newTask = TroubleTask(trouble_ticket=troubleid, support_provider=nextprovider,
+				remark=reply, createtime=createtime, assign_user=assign_user, status=0)
+			session.add(newTask)
+		#添加工单处理记录
+		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
+		dealingLog = addTroubleLog(user, troubleid, reply, dealingtype)
+		session.add(dealingLog)
+
+		#更新工单状态
+		
+		troubleTicketStatus = ''
+		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==troubleid).one()
+
+		if(dealingtype == const.DEALING_FINISHED):
+
+			if not checkPermission(user.permission,'FIN'):
+				raise APIError('结单失败', 'permission', '你没有该权限')
+			troubleTicketStatus = const.STATUS_FINISHED
+			trouble.endtime = datetime.datetime.now()
+		else:
+			troubleTicketStatus = const.STATUS_DEALING
+		trouble.status = troubleTicketStatus
+		trouble.deal_user = uid
+		trouble.deal_user_name = user.name
+		trouble.dealingtime = datetime.datetime.now()
+		session.commit()
+	res['returncode'] = const.RETURN_OK
+	res['message'] = '任务工单处理成功' + dealingtype
+	return res
+
+
+# 工单处理
 def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 	res = dict()
 	with session_scope() as session:
@@ -75,7 +129,7 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 		task.status = const.TASK_FINISHED
 		task.reply = reply
 		task.endtime = datetime.datetime.now()
-
+		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
 		if(dealingtype != const.DEALING_FINISHED):
 			#生成下一个工单
 			trouble_ticket = task.trouble.id
@@ -88,21 +142,14 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 			session.add(newTask)
 
 		#添加工程单处理记录
-		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
-		deal_user_name = user.name
-		support_provider_name = user.support_provider.provider_name
-		trouble_ticket_id = task.trouble.id
-		deal_user = uid
-		remark = reply
-		log_type = dealingtype
-		dealingLog = TroubleDealLog(trouble_ticket_id=trouble_ticket_id, deal_user=deal_user,remark=remark,
-			log_type=log_type, deal_user_name=deal_user_name, support_provider_name=support_provider_name)
+		dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype)
 		session.add(dealingLog)
 
+		
 		#更新工单状态
 		troubleTicketStatus = ''
 		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
-		
+
 		if(dealingtype == const.DEALING_FINISHED):
 
 			if not checkPermission(user.permission,'FIN'):
@@ -120,6 +167,20 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 	res['returncode'] = const.RETURN_OK
 	res['message'] = '任务工单处理成功' + dealingtype
 	return res
+
+def addTroubleLog(user, troubleId, reply, dealingtype):
+	
+	deal_user_name = user.name
+	support_provider_name = user.support_provider.provider_name
+	trouble_ticket_id = troubleId
+	deal_user = user.id
+	log_type = dealingtype
+	dealingLog = TroubleDealLog(trouble_ticket_id=trouble_ticket_id, deal_user=deal_user,remark=reply,
+		log_type=log_type, deal_user_name=deal_user_name, support_provider_name=support_provider_name,
+		createtime=datetime.datetime.now())
+	return dealingLog
+	
+
 
 # 通过用户或分组的权限字符串检查特定权限
 def checkPermission(userPermission, needed):
