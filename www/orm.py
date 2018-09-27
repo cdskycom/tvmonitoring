@@ -48,7 +48,7 @@ class SupportProvider(Base):
 	contact = Column(String(45))
 	contact_phone = Column(String(45))
 
-	users = relationship("User", back_populates="support_provider")
+	# users = relationship("User", back_populates="support_provider")
 	@classmethod
 	def getAll(self):
 		with session_scope() as session:
@@ -76,7 +76,7 @@ class User(Base):
 	is_admin = Column(Integer)
 	support_provider_id = Column(Integer, ForeignKey('support_provider.id'))
 	permission = Column(String(100))
-	support_provider = relationship("SupportProvider", back_populates="users")
+	support_provider = relationship("SupportProvider")
 
 	def __init__(self, account, password, name, is_admin, support_provider_id):
 		self.account = account
@@ -256,7 +256,7 @@ class TroubleTicket(Base):
 		with session_scope() as session:
 			
 			offset = (page - 1) * items_perpage
-			troubles = session.query(TroubleTicket).filter(*filters).limit(items_perpage).offset(offset)
+			troubles = session.query(TroubleTicket).filter(*filters).order_by("startTime desc").limit(items_perpage).offset(offset)
 			result = []
 			for trouble in troubles:
 				result.append(trouble.to_dict())
@@ -283,11 +283,14 @@ class TroubleDealLog(Base):
 	log_type = Column(String(45))
 	support_provider_name = Column(String(45))
 	createtime = Column(DateTime)
+	next_provider_id = Column(Integer, ForeignKey('support_provider.id'))
+
+	next_provider = relationship("SupportProvider")
 
 	@classmethod
 	def getDealLogByTrouble(self,troubleId):
 		with session_scope() as session:
-			logs = session.query(TroubleDealLog).filter(TroubleDealLog.trouble_ticket_id==troubleId).all()
+			logs = session.query(TroubleDealLog).filter(TroubleDealLog.trouble_ticket_id==troubleId).order_by(TroubleDealLog.createtime).all()
 			result = []
 			for log in logs:
 				result.append(log.to_dict())

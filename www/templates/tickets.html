@@ -23,8 +23,8 @@
               <div class="margin"> 
                 <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#modal-createtrouble" v-on:click="initNewTrouble">新建工单</button>
                 <!-- <button type="button" class="btn btn-secondary">编辑工单</button> -->
-                <button type="button" class="btn btn-secondary" disabled="">批量派单</button>
-                <button type="button" class="btn btn-success" v-on:click="dealTrouble('FINISHED','batch')" v-if="hasFinishedPermission">批量结单</button>
+                <button type="button" class="btn btn-secondary" v-on:click="dealTrouble('TRANSIT','batch')" disabled="">批量派单</button>
+                <button type="button" class="btn btn-success" v-on:click="dealTrouble('FINISHED','batch')" v-if="hasFinishedPermission">批量回单</button>
                 <div class="btn-group">
                       <button type="button" class="btn btn-default btn-flat" >{{ that.troublesTitle }}</button>
                       <button type="button" class="btn btn-default btn-flat dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
@@ -133,7 +133,7 @@
                     <div class="row form-group">
                       <div class="col-lg-6">
                           <div class="form-group">
-                            <label  class="col-sm-4 control-label">故障区域</label>
+                            <label  class="col-sm-4 control-label">上报区域</label>
 
                             <div class="col-sm-8">
                                <input type="text" class="form-control" v-model="newTrouble.region" v-bind:disabled="troubles.viewTrouble">
@@ -251,9 +251,8 @@
                       <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample" >
                         <div class="card-body" style="border:solid 1px #ddd" v-if="curTroubleLogs != ''">
                           <ul class="nav nav-stacked">
-                            <li v-for="log in curTroubleLogs"><a href="#">{{ log.support_provider_name + '-' + log.deal_user_name }} 
-                              <span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISHED'}]" >{{ log.log_type | convertType }}</span>
-                            </a></li>
+                            <li class="list-group-item-info" v-for="log in curTroubleLogs"><div class="row" style="margin-bottom:2px; padding:5px;"><div class="col-sm-10"><a href="#" ><span>{{ log.support_provider_name + '-' + log.deal_user_name }}</span><span style="padding-left: 5px; padding-right: 5px;">{{ log.createtime | DateTimeFtt }}</span><span style="padding-left: 5px; padding-right: 5px;">  {{ log.log_type | convertType }}</span><span style="padding-left: 5px; padding-right: 5px;" class="label-info" v-if="log.next_provider"> TO {{ log.next_provider.provider_name }}</span><span style="padding-left: 20px;">{{ log.log_type | convertType }}消息: {{log.remark}}</span>
+                              </a></div><div class="col-sm-2"><span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISHED'}]" >{{ log.log_type | convertType }}工单</span></div></div></li>
                           </ul>
                         </div>
                       </div>
@@ -265,7 +264,7 @@
               <div class="modal-footer">    
                     <button type="button" class="btn  btn-default pull-left" v-if="troubles.viewTrouble" v-on:click="doEditTrouble">启用编辑</button>
                     <button type="button" class="btn  btn-default pull-left" v-if="troubles.viewTrouble" v-on:click="doTransit" data-toggle="modal" data-target="#modal-transit" data-dismiss="modal">派单</button>
-                    <button type="button" class="btn  btn-success" data-dismiss="modal" v-on:click="dealTrouble('FINISHED')" v-if="hasFinishedPermission">结单</button>
+                    <button type="button" class="btn  btn-success" data-dismiss="modal" data-toggle="modal" data-target="#modal-finish" v-if="hasFinishedPermission & troubles.viewTrouble">回单</button>
                     <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal" v-on:click="createTroubleTicket" v-if="troubles.addTrouble ">创建</button>
                      <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal"  v-if="troubles.viewTrouble">确定</button>
                      <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal"  v-if="troubles.editTrouble">保存</button>
@@ -308,7 +307,6 @@
                 </form>
               </div>
               <div class="modal-footer">
-               
                 <button type="button" class="btn  btn-primary" data-dismiss="modal" v-on:click="dealTrouble('TRANSIT')" >确认转派</button>
               </div>
             </div>
@@ -316,6 +314,34 @@
           </div>
           <!-- /.modal-dialog -->
         </div>
+        <div class="modal fade in" id="modal-finish" style="display: none;">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title">回复工单</h4>
+              </div>
+              <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="box-body">
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">回单备注</label>
+                        <div class="col-sm-10">
+                          <textarea class="form-control" rows="3" placeholder="Enter ..." v-model="finishReply"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                </form>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="dealTrouble('FINISHED')">确认回复</button>
+              </div>
+            </div>
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+        </div>
+      </div>
 
        <div class="modal fade in" id="modal-message" style="display: none;">
           <div class="modal-dialog">

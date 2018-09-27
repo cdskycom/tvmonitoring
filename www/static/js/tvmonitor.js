@@ -9,7 +9,7 @@ TV_DateTimeFtt = {
             var dateStr = t.getDate() < 10 ? "0" + String(t.getDate()): String(t.getDate());
             var hourStr = t.getHours() < 10 ? "0" + String(t.getHours()): String(t.getHours());
             var minuteStr = t.getMinutes() < 10 ? "0" + String(t.getMinutes()): String(t.getMinutes());
-
+            console.log(timeStr + "&" + hourStr)
 
             return t.getFullYear() + '-' + monthStr + '-' + dateStr + ' ' + hourStr + ':' + minuteStr;
         }

@@ -70,9 +70,7 @@ var vm = new Vue({
 				nextprovider = this.tasks.currentTask.assigner.support_provider.id;
 			}
 			reply = this.tasks.taskReply;
-			if(t == 'FINISHED'){
-				reply = ''; //结单不提供回复备注
-			}
+			
 			axios.post(baseUrl + 'api/troubleticket/dealingtask',{
 					dealingtype: t,
 					taskid:this.tasks.currentTask.id,
@@ -123,6 +121,10 @@ var vm = new Vue({
 
 			});
 
+		},
+		redirect:function(flag){
+			var s = window.localStorage;
+			s['troublestatus'] = flag;
 		}
 		
 	},
@@ -168,11 +170,11 @@ var vm = new Vue({
 		},
 		convertType:function(val){
 			switch(val){
-				case 'CREATE': return '创建工单';
-				case 'REPLY': return '回复工单';
-				case 'TRANSIT': return '转派工单';
-				case 'FINISHED': return '结束工单';
-				default: return '位置动作';
+				case 'CREATE': return '创建';
+				case 'REPLY': return '退回';
+				case 'TRANSIT': return '转派';
+				case 'FINISHED': return '回复';
+				default: return '未知动作';
 			}
 		}
 		

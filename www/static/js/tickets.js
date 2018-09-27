@@ -12,6 +12,7 @@ var vm = new Vue({
 		providers: '',
 		toNextProvider: '',  //接收工单的厂家id
 		transitReply: '',  //派单备注
+		finishReply: '',   //回单备注
 		checkedTroubles: [], //复选框选中的工单号列表
 		newTrouble: {
 			report_channel: '',
@@ -119,7 +120,7 @@ var vm = new Vue({
 					}
 					that.message = res.data.message;
 					
-					this.showResultBox();
+					that.showResultBox();
 				
 			});
 
@@ -161,6 +162,8 @@ var vm = new Vue({
 		changeStatus:function(status){
 			that = this;
 			that.troubles.status = status;
+			var s = window.localStorage;
+			s['troublestatus'] = status;
 			if(status == 'ACCEPT'){
 				that.troublesTitle = '待分派工单';
 			}else if(status == 'DEALING'){
@@ -170,6 +173,7 @@ var vm = new Vue({
 			}else{
 				that.troublesTitle = '所有工单';
 			}
+			
 			var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
 			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 			axios.get(troubleUrl).then(function(res){
@@ -202,23 +206,22 @@ var vm = new Vue({
 			});
 
 		},
-		//任务工单处理
+		//任务工单处理 t-处理类型，TRANSIT派单 FINISHED回单
 		dealTrouble:function(t, flag){
 			that = this;
 			//回单直接回给派单人所在部门,转派工单则直接使用选择的厂家
 			nextprovider = this.toNextProvider;
 			reply = this.transitReply;
 			if(t == 'FINISHED'){
-				reply = ''; //结单不提供回复备注
+				reply = this.finishReply;
 			}
 			troubles = [this.newTrouble.id];
 			if(flag == 'batch'){
-				console.log('checkedlength:' + this.checkedTroubles.length);
 				if(this.checkedTroubles.length < 1){
-					that.validateerror = true;
+					
 					that.messageTitle = "处理失败";
 					that.message = "请至少选择一个工单";
-					this.showResultBox();
+					that.showResultBox();
 					return;
 				}else{
 					troubles = this.checkedTroubles;
@@ -253,6 +256,7 @@ var vm = new Vue({
 						
 					}
 					that.message = res.data.message;
+					that.showResultBox();
 					
 				
 				}).catch(function(error){
@@ -303,6 +307,21 @@ var vm = new Vue({
 	created: function () {
     	
     	that = this;
+    	var s = window.localStorage;
+    	status = s['troublestatus'];
+
+    	if(status){
+    		that.troubles.status = status;
+    		if(status == 'ACCEPT'){
+				that.troublesTitle = '待分派工单';
+			}else if(status == 'DEALING'){
+				that.troublesTitle = '在途工单';
+			}else if(status == 'FINISHED'){
+				that.troublesTitle = '已完成工单';
+			}else{
+				that.troublesTitle = '所有工单';
+			}
+    	}
 		var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
 			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 		axios.get(troubleUrl).then(function(res){
@@ -342,10 +361,10 @@ var vm = new Vue({
 		},
 		convertType:function(val){
 			switch(val){
-				case 'CREATE': return '创建工单';
-				case 'REPLY': return '回复工单';
-				case 'TRANSIT': return '转派工单';
-				case 'FINISHED': return '结束工单';
+				case 'CREATE': return '创建';
+				case 'REPLY': return '退回';
+				case 'TRANSIT': return '转派';
+				case 'FINISHED': return '回复';
 				default: return '未知动作';
 			}
 		}

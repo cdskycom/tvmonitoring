@@ -26,3 +26,4 @@ class TroubleTaskSchema(ModelSchema):
 class TroubleDealLogSchema(ModelSchema):
 	class Meta:
 		model = TroubleDealLog
+	next_provider = fields.Nested(SupportProviderSchema)

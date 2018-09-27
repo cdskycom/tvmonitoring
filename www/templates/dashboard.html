@@ -30,7 +30,7 @@
             <div class="icon">
               <i class="fa fa-fw fa-cogs"></i>
             </div>
-            <a href="/trouble/tickets" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+            <a href="/trouble/tickets" class="small-box-footer" v-on:click=redirect('ALL')>More info <i class="fa fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <!-- ./col -->
@@ -45,7 +45,7 @@
             <div class="icon">
               <i class="fa fa-fw fa-arrow-circle-o-up"></i>
             </div>
-            <a href="/trouble/tickets" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+            <a href="/trouble/tickets" class="small-box-footer" v-on:click=redirect('ACCEPT')>More info <i class="fa fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <!-- ./col -->
@@ -55,12 +55,12 @@
             <div class="inner">
               <h3>{{dealingTroubleCount}}</h3>
 
-              <p>正在处理...</p>
+              <p>处理中...</p>
             </div>
             <div class="icon">
               <i class="ion ion-person-add"></i>
             </div>
-            <a href="/trouble/tickets" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+            <a href="/trouble/tickets" class="small-box-footer" v-on:click=redirect('DEALING')>More info <i class="fa fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <!-- ./col -->
@@ -290,9 +290,10 @@
                         <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample" >
                           <div class="card-body" style="border:solid 1px #ddd" v-if="tasks.currentTask.curTaskLogs != ''">
                             <ul class="nav nav-stacked">
-                              <li v-for="log in tasks.curTaskLogs"><a href="#">{{ log.support_provider_name + '-' + log.deal_user_name }} 
-                                <span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISHED'}]" >{{ log.log_type | convertType }}</span>
-                              </a></li>
+                              <li class="list-group-item-info" v-for="log in tasks.curTaskLogs"><div class="row" style="margin-bottom:2px; padding:5px;"><div class="col-sm-10"><a href="#" ><span>{{ log.support_provider_name + '-' + log.deal_user_name }}</span><span style="padding-left: 5px; padding-right: 5px;">{{ log.createtime | DateTimeFtt }}</span><span style="padding-left: 5px; padding-right: 5px;">  {{ log.log_type | convertType }}</span><span style="padding-left: 5px; padding-right: 5px;" class="label-info" v-if="log.next_provider"> TO {{ log.next_provider.provider_name }}</span><span style="padding-left: 20px;">{{ log.log_type | convertType }}消息: {{log.remark}}</span>
+                              </a></div><div class="col-sm-2"><span  v-bind:class="['pull-right', 'badge', {'bg-red': log.log_type=='CREATE', 'bg-aqua': log.log_type=='REPLY', 'bg-blue': log.log_type=='TRANSIT', 'bg-green': log.log_type=='FINISHED'}]" >{{ log.log_type | convertType }}工单</span></div></div>
+                            </li>
+                            
                             </ul>
                           </div>
                         </div>
@@ -306,8 +307,8 @@
 
               <div class="modal-footer">    
                     <button type="button" class="btn  btn-default pull-left" data-toggle="modal" data-target="#modal-transit" data-dismiss="modal" v-on:click="doTransit">转派</button>
-                    <button type="button" class="btn  btn-success" data-dismiss="modal" v-on:click="dealTask('FINISHED')" v-if="hasFinishedPermission">结单</button>
-                    <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal">回单</button>
+                    <button type="button" class="btn  btn-success" data-dismiss="modal" data-toggle="modal" data-target="#modal-reply" v-if="hasFinishedPermission">回单</button>
+                   
                   </div>
               </div>
             <!-- /.modal-content -->
@@ -376,7 +377,7 @@
                     </div>
                 </form>
               <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="dealTask('REPLY')">确认回复</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="dealTask('FINISHED')">确认回复</button>
               </div>
             </div>
             <!-- /.modal-content -->

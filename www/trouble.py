@@ -4,6 +4,7 @@ from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTas
 from const import const
 import logging, time, datetime
 from apis import APIValueError, APIError
+import pdb
 
 
 def addTroubleTicket(report_channel, type, region, level, description, 
@@ -85,6 +86,7 @@ def dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid):
 	res = dict()
 	#生成任务
 	with session_scope() as session:
+		
 		if(dealingtype != const.DEALING_FINISHED):
 			#生成下一个任务
 			createtime = datetime.datetime.now()
@@ -94,7 +96,7 @@ def dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid):
 			session.add(newTask)
 		#添加工单处理记录
 		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
-		dealingLog = addTroubleLog(user, troubleid, reply, dealingtype)
+		dealingLog = addTroubleLog(user, troubleid, reply, dealingtype, nextprovider)
 		session.add(dealingLog)
 
 		#更新工单状态
@@ -142,7 +144,7 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 			session.add(newTask)
 
 		#添加工程单处理记录
-		dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype)
+		dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype, nextprovider)
 		session.add(dealingLog)
 
 		
@@ -168,16 +170,18 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 	res['message'] = '任务工单处理成功' + dealingtype
 	return res
 
-def addTroubleLog(user, troubleId, reply, dealingtype):
+def addTroubleLog(user, troubleId, reply, dealingtype, nextprovider):
 	
 	deal_user_name = user.name
 	support_provider_name = user.support_provider.provider_name
 	trouble_ticket_id = troubleId
 	deal_user = user.id
 	log_type = dealingtype
+	if(not nextprovider or int(nextprovider) < 1):
+		nextprovider = None
 	dealingLog = TroubleDealLog(trouble_ticket_id=trouble_ticket_id, deal_user=deal_user,remark=reply,
 		log_type=log_type, deal_user_name=deal_user_name, support_provider_name=support_provider_name,
-		createtime=datetime.datetime.now())
+		createtime=datetime.datetime.now(),next_provider_id=nextprovider)
 	return dealingLog
 	
 

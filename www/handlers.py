@@ -77,6 +77,17 @@ def index(request):
 	return {
 		'__template__': 'dashboard.html'
 	}
+
+@get('/inspec')
+def getInspec(request):
+	# logging.info('enter index...')
+	# return {
+	# 	'__template__': 'index.html'
+	# }
+	return {
+		'__template__': 'index.html'
+	}
+
 @get('/manage')
 def manageIndex(request):
 	logging.info('enter index...')
@@ -479,8 +490,12 @@ def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 	# nextprovider-下个处理厂家
 	# reply - 工单处理备注
 	troubleList = troubles.split(',')
+	res = dict()
 	for troubleid in troubleList:
-		trouble.dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid)
+		res = trouble.dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid)
+
+	return res
+
 
 
 
