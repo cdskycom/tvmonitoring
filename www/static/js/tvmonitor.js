@@ -9,7 +9,6 @@ TV_DateTimeFtt = {
             var dateStr = t.getDate() < 10 ? "0" + String(t.getDate()): String(t.getDate());
             var hourStr = t.getHours() < 10 ? "0" + String(t.getHours()): String(t.getHours());
             var minuteStr = t.getMinutes() < 10 ? "0" + String(t.getMinutes()): String(t.getMinutes());
-            console.log(timeStr + "&" + hourStr)
 
             return t.getFullYear() + '-' + monthStr + '-' + dateStr + ' ' + hourStr + ':' + minuteStr;
         }
@@ -81,7 +80,7 @@ Vue.component('my-pagenation',{
             '<ul class="pagination pagination-sm no-margin">' +
             '<li><a href="#" v-on:click="toPrePage">«</a></li>' +
             
-            '<li v-for="num in displayNumber" v-on:click="changePage(num)" ><a href="#">{{ num }}</a></li>' +
+            '<li v-for="num in displayNumber" v-on:click="changePage(num)" class=paginate_button v-bind:class="{ \'active\': num==current }" ><a href="#">{{ num }}</a></li>' +
             
             '<li><a href="#" v-on:click="toNextPage">»</a></li>' + 
             '<span> 跳转至:</span>' +

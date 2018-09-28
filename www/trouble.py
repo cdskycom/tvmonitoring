@@ -42,7 +42,7 @@ def addTroubleTicket(report_channel, type, region, level, description,
 		session.add(troubleTicket)
 		session.flush()
 		user = session.query(User).join(User.support_provider).filter(User.id==deal_user).one()
-		dealingLog = addTroubleLog(user, troubleTicket.id, '', const.DEALING_CREATE)
+		dealingLog = addTroubleLog(user, troubleTicket.id, '', const.DEALING_CREATE, None)
 		session.add(dealingLog)
 		session.commit()
 

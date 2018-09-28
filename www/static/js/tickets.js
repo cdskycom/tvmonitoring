@@ -1,7 +1,17 @@
+function getLocalDateString(){
+        var t = new Date();
+        var month = t.getMonth() + 1;
+        var monthStr = month < 10 ? "0" + String(month): String(month);
+        var dateStr = t.getDate() < 10 ? "0" + String(t.getDate()): String(t.getDate());
+        var hourStr = t.getHours() < 10 ? "0" + String(t.getHours()): String(t.getHours());
+        var minuteStr = t.getMinutes() < 10 ? "0" + String(t.getMinutes()): String(t.getMinutes());
+        return t.getFullYear() + '-' + monthStr + '-' + dateStr + 'T' + hourStr + ':' + minuteStr;
+}
 
 var vm = new Vue({
 	el:'#app',
 	data:{
+		submit: false, //是否可提交回单及派单数据标识
 		validateerror: false,
 		validatemessage:'',
 		messageTitle: '',
@@ -66,7 +76,7 @@ var vm = new Vue({
 				level: '',
 				description: '',
 				impact: '',
-				startTime: '',
+				startTime: getLocalDateString(),
 				endTime: '',
 				custid: '',
 				mac: '',
@@ -80,6 +90,7 @@ var vm = new Vue({
 				dealingtime: '',
 
 			};
+			that.submit = false;
 			that.curTroubleLogs = '';
 			that.troubles.addTrouble = true;
 			that.troubles.editTrouble = false;
@@ -106,7 +117,7 @@ var vm = new Vue({
 					create_user_name: userinfo.username,
 					deal_user: userinfo.uid,
 					deal_user_name: userinfo.username,
-					dealingtime: '',
+					dealingtime: ''
 				}).then(function(res){
 					if(res.data.error){
 					
@@ -162,6 +173,7 @@ var vm = new Vue({
 		changeStatus:function(status){
 			that = this;
 			that.troubles.status = status;
+			that.troubles.currentPage = 1;
 			var s = window.localStorage;
 			s['troublestatus'] = status;
 			if(status == 'ACCEPT'){
@@ -197,6 +209,7 @@ var vm = new Vue({
 			
 		},
 
+		//获取派单厂家
 		doTransit:function(){
 			that = this;
 			var url = baseUrl + 'api/troubleticket/getprovider';
@@ -206,6 +219,9 @@ var vm = new Vue({
 			});
 
 		},
+
+		
+
 		//任务工单处理 t-处理类型，TRANSIT派单 FINISHED回单
 		dealTrouble:function(t, flag){
 			that = this;
@@ -217,15 +233,9 @@ var vm = new Vue({
 			}
 			troubles = [this.newTrouble.id];
 			if(flag == 'batch'){
-				if(this.checkedTroubles.length < 1){
-					
-					that.messageTitle = "处理失败";
-					that.message = "请至少选择一个工单";
-					that.showResultBox();
-					return;
-				}else{
-					troubles = this.checkedTroubles;
-				}
+				
+				troubles = this.checkedTroubles;
+				
 
 			}
 			
@@ -244,7 +254,6 @@ var vm = new Vue({
 				// 	uid: userinfo.uid
 				// }
 				).then(function(res){
-					console.log(res);
 					if(res.data.error){
 					
 						that.validateerror = true;
@@ -267,10 +276,48 @@ var vm = new Vue({
 					}else{
 						that.message = error.message;
 					}
-					return Promise.reject(error);
+					that.showResultBox();
+					// return Promise.reject(error);
 				});
+				that.submit = false;
 				
 			
+		},
+		//设置可提交数据标识
+		doSubmit:function(){
+			this.submit = true;
+		},
+		doDealTrouble:function(t, flag){
+			that = this;
+			if(flag == 'batch'){
+				if(that.checkedTroubles.length < 1){	
+					that.messageTitle = "处理失败";
+					that.message = "请至少选择一个工单";
+					that.showResultBox();
+					return;
+				}
+
+			}
+			if(t == "TRANSIT"){
+				that.doTransit(); //获取派单厂家
+				$('#modal-transit').modal('show');
+				$('#modal-transit').on('hidden.bs.modal', function (e) {
+					if(that.submit){
+						that.dealTrouble(t, flag);
+					}
+				});
+
+			}else if(t == "FINISHED"){
+				$('#modal-finish').modal('show');
+				$('#modal-finish').on('hidden.bs.modal', function (e) {
+					if(that.submit){
+						that.dealTrouble(t, flag);
+					}
+				});
+
+			}
+
+
 		},
 
 		handletopage:function(playload){
@@ -289,7 +336,7 @@ var vm = new Vue({
 		handleitemschange:function(playload){
 			that = this;
 			this.troubles.itemsPerPage = playload.newitems;
-			this.currentPage = 1;
+			this.troubles.currentPage = 1;
 			var troubleUrl = baseUrl + 'api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
 				this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 			axios.get(troubleUrl).then(function(res){

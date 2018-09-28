@@ -344,7 +344,9 @@ class TroubleTask(Base):
 			tasks = session.query(TroubleTask).filter(*filters).limit(items_perpage).offset(offset)
 			result = []
 			for task in tasks:
+				
 				result.append(task.to_dict())
+
 
 		return result
 
@@ -352,6 +354,10 @@ class TroubleTask(Base):
 		from schema import TroubleTaskSchema
 		task_schema = TroubleTaskSchema()
 		return task_schema.dump(self).data
+
+	def __repr__(self):
+		return "<Task(id='%s', createtime='%s')>" % (
+			self.id, self.createtime)
 
 
 
