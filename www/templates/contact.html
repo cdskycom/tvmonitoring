@@ -1,0 +1,98 @@
+{% extends 'troublebase.html' %}
+
+{% block title %} 概览 {% endblock %}
+
+{% block beforehead %}
+
+
+{% endblock %}
+
+{% block content %}
+ <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        联系人
+        <small>厂家支撑人员联系方式</small>
+      </h1>
+    </section>
+
+    <!-- Main content -->
+    <section id="app" class="content container-fluid">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="box">
+            <div class="box-header with-border">
+              <h3 class="box-title">支撑单位</h3>
+            </div>
+            <!-- /.box-header -->
+             <div class="box-body no-padding">
+              <table class="table table-hover">
+                <tbody>
+                  <tr>
+                    <th>单位</th>
+                    <th>联系人</th>
+                    <th style="width: 40px">电话</th>
+                  </tr>
+                  <tr v-for="provider in providers" v-on:click="selectProvider(provider)">
+                    <td>{{ provider.provider_name }}</td>
+                    <td>{{ provider.contact }}</td>
+                    <td>{{ provider.contact_phone }}</td>
+                  </tr>
+               
+                </tbody>
+              </table>
+            </div>
+            
+          
+          
+          </div>
+        </div>
+        <!-- /.col -->
+        <div class="col-md-6">
+          <div class="box">
+            <div class="box-header">
+              <h3 class="box-title">{{ curProvider.provider_name }} 支撑工程师</h3>
+
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body no-padding">
+              <table class="table">
+                <tbody>
+                  <tr>
+                    <th>姓名</th>
+                    <th>电话</th>
+                    <th>邮箱</th>
+                    
+                  </tr>
+                  <tr v-for="user in curProvider.users">
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.phone }}</td>
+                    <td>{{ user.email }}</td>
+                  </tr>
+               
+                </tbody>
+              </table>
+            </div>
+            <!-- /.box-body -->
+          </div>
+          <!-- /.box -->
+
+         
+        </div>
+        <!-- /.col -->
+      
+      </div>
+    </section>
+    <!-- /.content -->
+    <script type="text/javascript">
+        var userinfo = {
+                   uid:{{{ __user__.id }}},
+                   pid:{{{ __user__.support_provider.id }}},
+                   permission:'{{{ __user__.permission }}}'
+        };
+        
+
+    </script>
+    <script src="/static/js/contact.js"></script>
+
+{% endblock %}

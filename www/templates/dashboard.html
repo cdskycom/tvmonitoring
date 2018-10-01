@@ -93,23 +93,28 @@
               <table class="table">
                 <tbody>
                 <tr>
-                  <th style="width: 10px">ID</th>
+                  <th style="width: 80px">任务状态</th>
                   <th style="width: 130px">任务时间</th>
                   <th style="width: 80px">故障级别</th>
+                  <th>故障类型</th>
                   <th>区域</th>
                   <th>故障现象</th>
                   <th>影响范围</th>
                   <th style="width: 80px">详情</th>
                 </tr>
                 <tr v-for="t in tasks.taskList">
-                  <td><span v-text="t.id"></span></td>
+                  <td><span v-bind:class="['label', {'label-warning': t.status==0, 'label-info': t.status==2}]" >{{ t.status | getStatus }}</span></td>
                   <td><span >{{ t.createtime | DateTimeFtt }}</span></td>
                   <td><span v-bind:class="['label', {'label-danger': t.trouble.level==0, 'label-warning': t.trouble.level==1, 'label-info': t.trouble.level==2}]" >{{ t.trouble.level | levelStr}}</span></td>
+                  <td><span v-text="t.trouble.type"></span></td>
                   <td><span v-text="t.trouble.region"></span></td>
                   <td><span>{{ t.trouble.description | shortcutStr(strLengthInTable) }}</span></td>
                   <td><span v-text="t.trouble.impact"></span></td>
-                  <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)">
-                        查看详情
+                  <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)" v-if="t.status == 0">
+                        接单
+                      </button>
+                      <button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)" v-if="t.status != 0">
+                        处理
                       </button>
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTask, SupportProvider, session_scope
+from orm import TroubleCategory, ImpactArea
 from const import const
 import logging, time, datetime
 from apis import APIValueError, APIError
@@ -65,15 +66,15 @@ def getTroublePageByStatus(page, items_perpage, status):
 
 
 def getTaskCountByProvider(providerID):
-	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status != 1}
 	return TroubleTask.getTaskCount(*filters)
 
 def getTask(providerID):
-	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status != 1}
 	return TroubleTask.getTask(*filters)
 
 def getTaskPage(page, items_perpage, providerID):
-	filters = {TroubleTask.support_provider == providerID, TroubleTask.status == 0}
+	filters = {TroubleTask.support_provider == providerID, TroubleTask.status != 1}
 	return TroubleTask.getTaskPage(page, items_perpage, *filters)
 
 def getDealLogByTrouble(troubleId):
@@ -126,14 +127,23 @@ def dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid):
 def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 	res = dict()
 	with session_scope() as session:
-		#更新当前工单
-		task = session.query(TroubleTask).filter(TroubleTask.id==taskid).one()
-		task.status = const.TASK_FINISHED
-		task.reply = reply
-		task.endtime = datetime.datetime.now()
 		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
-		if(dealingtype != const.DEALING_FINISHED):
-			#生成下一个工单
+		#更新当前工单，接单不添加流转记录，仅更新状态和接单时间
+		task = session.query(TroubleTask).filter(TroubleTask.id==taskid).one()
+		if(dealingtype == const.DEALING_ACCEPT):
+			task.status = const.TASK_ACCEPTED
+			task.accepttime = datetime.datetime.now()
+		else:
+			task.status = const.TASK_FINISHED
+			task.reply = reply
+			task.endtime = datetime.datetime.now()
+			#添加工程单处理记录
+			dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype, nextprovider)
+			session.add(dealingLog)
+		
+		#接单和完成任务均不生成下一个任务
+		if(dealingtype != const.DEALING_FINISHED and dealingtype != const.DEALING_ACCEPT):
+			#生成下一个任务
 			trouble_ticket = task.trouble.id
 			support_provider = nextprovider
 			remark = reply
@@ -143,9 +153,7 @@ def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
 				remark=remark, createtime=createtime, assign_user=assign_user, status=0)
 			session.add(newTask)
 
-		#添加工程单处理记录
-		dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype, nextprovider)
-		session.add(dealingLog)
+		
 
 		
 		#更新工单状态
@@ -183,7 +191,14 @@ def addTroubleLog(user, troubleId, reply, dealingtype, nextprovider):
 		log_type=log_type, deal_user_name=deal_user_name, support_provider_name=support_provider_name,
 		createtime=datetime.datetime.now(),next_provider_id=nextprovider)
 	return dealingLog
-	
+
+def getTroubleCategory():
+	return TroubleCategory.getCategory()
+
+def getImpactArea():
+	return ImpactArea.getImpactArea()
+
+
 
 
 # 通过用户或分组的权限字符串检查特定权限

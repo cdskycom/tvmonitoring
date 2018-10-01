@@ -127,7 +127,7 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 # 添加用户
 @post('/api/users')
-def api_register_user(*, account, password, name, is_admin, support_provider_id):
+def api_register_user(*, account, password, name, is_admin, support_provider_id, phone, email):
 	logging.info('添加用户的密码: %s' % password)
 	if not account or not account.strip():
 		raise APIValueError('account','账号不能为空')
@@ -139,13 +139,16 @@ def api_register_user(*, account, password, name, is_admin, support_provider_id)
 		raise APIValueError('name','用户名不能为空')
 	if not support_provider_id or support_provider_id < 1:
 		raise APIValueError('support_provider','支撑单位不能为空')
+	if not phone or not phone.strip():
+		raise APIValueError('phone','联系电话不能为空')
 
 	filters = {User.account == account}
 	users = User.getAll(*filters)
 	if len(users) > 0:
 		raise APIError('添加用户失败', 'account', '用户账号已经存在')
 	sha1_passwd = '%s:%s' % (account, password)
-	user = User(account, hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), name, is_admin, support_provider_id)
+	user = User(account, hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), name, is_admin, 
+		support_provider_id, phone, email)
 	user.save()
 	res = dict()
 	res['returncode'] = const.RETURN_OK
@@ -190,16 +193,18 @@ def authenticate(*, account, password):
 	return r
 
 @post('/manage/api/user/update/{id}')
-def api_update_user(id, request, *, account, password, name, is_admin):
+def api_update_user(id, request, *, account, password, name, is_admin, phone, email):
 	if not account or not account.strip():
 		raise APIValueError('account','账号不能为空')
 	if not name or not name.strip():
 		raise APIValueError('name','用户名不能为空')
+	if not phone or not phone.strip():
+		raise APIValueError('phone','联系电话不能为空')
 	user = User.getUserById(id)
 	if user["account"] != account:
 		raise APIValueError('account','登录账号不能修改')
 	
-	user = User.updateUser(id, name, is_admin)
+	user = User.updateUser(id, name, is_admin, phone, email)
 	user['password'] = "******"
 	return  user
 
@@ -408,6 +413,18 @@ def getTroubleTickets(request):
 		'__template__': 'tickets.html'
 	}
 
+@get('/trouble/contact')
+def getContact(request):
+	return {
+		'__template__': 'contact.html'
+	}
+
+@get('/trouble/wiki')
+def getWiki(request):
+	return {
+		'__template__': 'wiki.html'
+	}
+
 @post('/api/addtroubleticket')
 def addTroubleTicket(*, report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
@@ -495,6 +512,14 @@ def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 		res = trouble.dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid)
 
 	return res
+
+@get('/api/troubleticket/gettroublecategory')
+def getTroubleCategory():
+	return dict(categories=trouble.getTroubleCategory())
+
+@get('/api/troubleticket/getimpactarea')
+def getImpactArea():
+	return dict(areas=trouble.getImpactArea())
 
 
 

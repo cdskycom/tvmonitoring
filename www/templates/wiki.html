@@ -1,0 +1,37 @@
+{% extends 'troublebase.html' %}
+
+{% block title %} 概览 {% endblock %}
+
+{% block beforehead %}
+
+
+{% endblock %}
+
+{% block content %}
+ <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        知识库
+        <small>常见问题与方法</small>
+      </h1>
+    </section>
+
+    <!-- Main content -->
+    <section id="app" class="content container-fluid">
+
+      建设中....
+
+    </section>
+    <!-- /.content -->
+    <script type="text/javascript">
+        var userinfo = {
+                   uid:{{{ __user__.id }}},
+                   pid:{{{ __user__.support_provider.id }}},
+                   permission:'{{{ __user__.permission }}}'
+        };
+        
+
+    </script>
+    <script src="/static/js/wiki.js"></script>
+
+{% endblock %}

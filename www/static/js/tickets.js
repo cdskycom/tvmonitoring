@@ -24,11 +24,13 @@ var vm = new Vue({
 		transitReply: '',  //派单备注
 		finishReply: '',   //回单备注
 		checkedTroubles: [], //复选框选中的工单号列表
+		troubleCategories: [], //故障类型
+		impactArea:[], //故障影响范围
 		newTrouble: {
 			report_channel: '',
 			type: '',
 			region: '',
-			level: '',
+			level: '0',
 			description: '',
 			impact: '',
 			startTime: '',
@@ -69,13 +71,14 @@ var vm = new Vue({
 		initNewTrouble:function(){
 			that = this;
 			console.log('initnewtrouble...');
+			
 			that.newTrouble = {
 				report_channel: '',
-				type: '',
+				type: this.troubleCategories[0].name,
 				region: '',
-				level: '',
+				level: '0',
 				description: '',
-				impact: '',
+				impact: this.impactArea[0].area,
 				startTime: getLocalDateString(),
 				endTime: '',
 				custid: '',
@@ -90,12 +93,31 @@ var vm = new Vue({
 				dealingtime: '',
 
 			};
+
 			that.submit = false;
 			that.curTroubleLogs = '';
 			that.troubles.addTrouble = true;
 			that.troubles.editTrouble = false;
 			that.troubles.viewTrouble = false;
 			that.troubleWindowTitle = '创建工单';
+		},
+		getTroubleCategory:function(){
+			that = this;
+			var troubleUrl = baseUrl + 'api/troubleticket/gettroublecategory';
+			axios.get(troubleUrl).then(function(res){
+				that.troubleCategories= res.data.categories;	
+				
+			});
+			
+		},
+		getImpactArea:function(){
+			that = this;
+			var troubleUrl = baseUrl + 'api/troubleticket/getimpactarea';
+			axios.get(troubleUrl).then(function(res){
+				that.impactArea= res.data.areas;	
+				
+			});
+
 		},
 		createTroubleTicket:function(event){
 			that = this;
@@ -377,6 +399,8 @@ var vm = new Vue({
 			that.troubles.troubleList = res.data.troubles;
 
 		});
+		this.getTroubleCategory();
+		this.getImpactArea();
   	},
 	filters:{
 		//日期格式化过滤器

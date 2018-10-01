@@ -113,7 +113,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
   <aside class="main-sidebar">
 
     <!-- sidebar: style can be found in sidebar.less -->
-    <section class="sidebar">
+    <section  id="menu" class="sidebar">
 
       <!-- search form (Optional) -->
       <form action="#" method="get" class="sidebar-form">
@@ -131,10 +131,8 @@ scratch. This page gets rid of all links and provides the needed markup only.
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">主菜单</li>
         <!-- Optionally, you can add icons to the links -->
-        <li ><a href="/trouble/dashboard"><i class="fa fa-dashboard"></i> <span>任务概览</span></a></li>
-        <li ><a href="/trouble/tickets"><i class="fa fa-edit"></i> <span>工单管理</span></a></li>
-        <li ><a href="#"><i class="fa fa-fw fa-user"></i> <span>联系人</span></a></li>
-        <li ><a href="#"><i class="fa fa-fw fa-wikipedia-w"></i> <span>知识库</span></a></li>
+        <li v-for="m in menu" v-bind:class="{'active': isActive(m)}"><a v-bind:href="m.url"><i v-bind:class="m.icon"></i> <span>{{ m.display }}</span></a></li>
+       
         <!-- <li class="treeview acitve">
           <a href="#"><i class="fa fa-link"></i> <span>Multilevel</span>
             <span class="pull-right-container">
@@ -258,6 +256,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
 <script src="/static/bootstrap/dist/js/bootstrap.min.js"></script>
 <!-- AdminLTE App -->
 <script src="/static/js/adminlte.min.js"></script>
+<script src="/static/js/troublebase.js"></script>
 
 
 <!-- Optionally, you can add Slimscroll and FastClick plugins.

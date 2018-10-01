@@ -18,15 +18,18 @@ const.STATUS_ACCEPT = 'ACCEPT'
 const.STATUS_DEALING = 'DEALING'
 const.STATUS_FINISHED = 'FINISHED'
 const.STATUS_ALL = 'ALL'
+
 #任务状态常量
 const.TASK_PENDING = 0
 const.TASK_FINISHED = 1
+const.TASK_ACCEPTED = 2  #已接收任务，但未完成处理
 
 # 工单处理标识常量
 const.DEALING_CREATE = 'CREATE'
 const.DEALING_REPLY = 'REPLY'
 const.DEALING_TRANSIT = 'TRANSIT'
 const.DEALING_FINISHED = 'FINISHED'
+const.DEALING_ACCEPT = 'ACCEPT'  #接单
 
 # 返回消息常量
 const.RETURN_OK = 0

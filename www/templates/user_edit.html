@@ -93,7 +93,9 @@
 				password:'',
 				name:'',
 				is_admin: 0,
-				support_provider_id: -1
+				support_provider_id: -1,
+				phone:'',
+				email:''
 			},'add')
 		}
 
@@ -125,6 +127,12 @@
 
         <div class="uk-margin">
             <label>显示名:</label><input class="uk-input" type="text" v-model="user.name" placeholder="显示名">
+        </div>
+        <div class="uk-margin">
+            <label>联系电话:</label><input class="uk-input" type="text" v-model="user.phone" placeholder="显示名">
+        </div>
+        <div class="uk-margin">
+            <label>邮箱:</label><input class="uk-input" type="text" v-model="user.email" placeholder="显示名">
         </div>
         <div class="uk-margin">
         	<label>支撑单位:</label>

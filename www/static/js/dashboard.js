@@ -40,6 +40,10 @@ var vm = new Vue({
 			that.tasks.currentTask = t;
 			that.tasks.curTaskLogs = '';
 			$('#collapseOne').collapse('hide');
+			if(that.tasks.currentTask.status == 0){
+				//发起接单
+				this.dealTask('ACCEPT')
+			}
 
 		},
 		getLogs:function(id){
@@ -64,7 +68,7 @@ var vm = new Vue({
 		//任务工单处理
 		dealTask:function(t){
 			that = this;
-			//回单直接回给派单人所在部门,转派工单则直接使用选择的厂家
+			//转派给下一个厂家
 			nextprovider = this.tasks.toNextProvider;
 			if(t == 'REPLY'){
 				nextprovider = this.tasks.currentTask.assigner.support_provider.id;
@@ -89,10 +93,15 @@ var vm = new Vue({
 						
 					}
 					that.message = res.data.message;
-					$('#modal-message').modal('show');
-					$('#modal-message').on('hidden.bs.modal', function (e) {
-						location.reload();
-					});
+					if(t != 'ACCEPT'){
+						$('#modal-message').modal('show');
+						$('#modal-message').on('hidden.bs.modal', function (e) {
+							location.reload();
+						});
+					}else{
+						//接单后仅更新当前工单状态
+						that.tasks.currentTask.status = 2;
+					}
 				
 			});
 		},
@@ -174,9 +183,18 @@ var vm = new Vue({
 				case 'REPLY': return '退回';
 				case 'TRANSIT': return '转派';
 				case 'FINISHED': return '回复';
+				case 'ACCEPT': return '接收'
 				default: return '未知动作';
 			}
-		}
+		},
+		getStatus:function(val){
+			switch(val){
+				case 0: return '未接单';
+				case 1: return '已完成';
+				case 2: return '处理中';
+				default: return '未知状态';
+			}
+		},
 		
 	}
 });

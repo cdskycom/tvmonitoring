@@ -2,12 +2,14 @@
 from marshmallow_sqlalchemy import ModelSchema
 from marshmallow import fields
 from orm import User, SupportProvider, TroubleTask, TroubleTicket, TroubleDealLog
+from orm import TroubleCategory, ImpactArea
 
 class SupportProviderSchema(ModelSchema):
 	class Meta:
 		model = SupportProvider
 		dateformat = '%Y-%m-%dT%H:%M:%S'
-	# users = fields.Nested(UserSchema, many=True)
+
+	users = fields.Nested('UserSchema', many=True, only=["account","name","phone","email"])
 
 class UserSchema(ModelSchema):
 	class Meta:
@@ -32,3 +34,13 @@ class TroubleDealLogSchema(ModelSchema):
 		model = TroubleDealLog
 		dateformat = '%Y-%m-%dT%H:%M:%S'
 	next_provider = fields.Nested(SupportProviderSchema)
+
+class TroubleCategorySchema(ModelSchema):
+	class Meta:
+		model = TroubleCategory
+
+class ImpactAreaSchema(ModelSchema):
+	class Meta:
+		model = ImpactArea
+
+		

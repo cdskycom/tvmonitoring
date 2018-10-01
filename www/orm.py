@@ -48,7 +48,7 @@ class SupportProvider(Base):
 	contact = Column(String(45))
 	contact_phone = Column(String(45))
 
-	# users = relationship("User", back_populates="support_provider")
+	users = relationship("User", back_populates="support_provider")
 	@classmethod
 	def getAll(self):
 		with session_scope() as session:
@@ -76,14 +76,18 @@ class User(Base):
 	is_admin = Column(Integer)
 	support_provider_id = Column(Integer, ForeignKey('support_provider.id'))
 	permission = Column(String(100))
+	phone = Column(String(45))
+	email = Column(String(45))
 	support_provider = relationship("SupportProvider")
 
-	def __init__(self, account, password, name, is_admin, support_provider_id):
+	def __init__(self, account, password, name, is_admin, support_provider_id, phone, email):
 		self.account = account
 		self.password = password
 		self.name = name
 		self.is_admin = is_admin
 		self.support_provider_id = support_provider_id
+		self.phone = phone
+		self.email = email
 
 	# 查询用户信息，支持提供字符串过滤参数(filter1, filter2 ...)
 	@classmethod
@@ -143,7 +147,7 @@ class User(Base):
 		return 	result
 	
 	@classmethod
-	def updateUser(self, id, name, is_admin):
+	def updateUser(self, id, name, is_admin, phone, email):
 		
 		with session_scope() as session:
 			
@@ -151,6 +155,8 @@ class User(Base):
 			# logging.info('修改前的user： %s : %s : %s' % (user.account, user.name, user.password))
 			user.name = name
 			user.is_admin = is_admin
+			user.phone = phone
+			user.email = email
 			
 			session.commit()
 			result = user.to_dict()
@@ -199,8 +205,8 @@ class TroubleTicket(Base):
 	#故障类型
 	type = Column(String(45))
 	region = Column(String(45))
-	#故障级别
-	level = Column(String(45))
+	#故障级别 0-紧急故障、1-一般故障、2-感知问题
+	level = Column(String(45))  
 	description = Column(String(500))
 	#故障影响
 	impact = Column(String(500))
@@ -307,6 +313,7 @@ class TroubleTask(Base):
 
 	id = Column(Integer, primary_key=True)
 	trouble_ticket = Column(Integer, ForeignKey('trouble_tickets.id'))
+	# 任务状态 0-未处理、1-已完成、2-已接单未处理
 	status = Column(Integer)
 	support_provider = Column(Integer, ForeignKey('support_provider.id'))
 	remark = Column(String(100))
@@ -314,6 +321,7 @@ class TroubleTask(Base):
 	endtime = Column(DateTime)
 	reply = Column(String(100))
 	assign_user = Column(Integer, ForeignKey('users.id'))
+	accepttime = Column(DateTime)
 
 	trouble = relationship("TroubleTicket", back_populates="tasks")
 	assigner = relationship("User")
@@ -327,9 +335,8 @@ class TroubleTask(Base):
 
 	@classmethod
 	def getTask(self, *filters):
-		with sessionmaker() as session:
-			tasks = session.query(TroubleTask).filter(*filters).all()
-			logging.info('gettask' + tasks)
+		with session_scope() as session:
+			tasks = session.query(TroubleTask).filter(*filters).order_by("createtime desc").all()
 			result = []
 			
 			for task in tasks:
@@ -341,7 +348,7 @@ class TroubleTask(Base):
 		with session_scope() as session:
 			
 			offset = (page - 1) * items_perpage
-			tasks = session.query(TroubleTask).filter(*filters).limit(items_perpage).offset(offset)
+			tasks = session.query(TroubleTask).filter(*filters).order_by("createtime desc").limit(items_perpage).offset(offset)
 			result = []
 			for task in tasks:
 				
@@ -359,6 +366,45 @@ class TroubleTask(Base):
 		return "<Task(id='%s', createtime='%s')>" % (
 			self.id, self.createtime)
 
+# 故障类型
+class TroubleCategory(Base):
+	__tablename__ = 'trouble_category'
+	id = Column(Integer, primary_key=True)
+	name = Column(String(45))
+
+	@classmethod
+	def getCategory(self):
+		with session_scope() as session:
+			categories = session.query(TroubleCategory).all()
+			result = []			
+			for category in categories:
+				result.append(category.to_dict())	
+		return result
+
+	def to_dict(self):
+		from schema import TroubleCategorySchema
+		category_schema = TroubleCategorySchema()
+		return category_schema.dump(self).data
+
+# 故障影响范围
+class ImpactArea(Base):
+	__tablename__ = 'impact_area'
+	id = Column(Integer, primary_key=True)
+	area = Column(String(45))
+
+	@classmethod
+	def getImpactArea(self):
+		with session_scope() as session:
+			areas = session.query(ImpactArea).all()
+			result = []			
+			for area in areas:
+				result.append(area.to_dict())	
+		return result
+
+	def to_dict(self):
+		from schema import ImpactAreaSchema
+		area_schema = ImpactAreaSchema()
+		return area_schema.dump(self).data
 
 
 # 排班表
