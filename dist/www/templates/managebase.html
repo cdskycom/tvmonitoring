@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	{% block meta %}<!-- block meta -->{% endblock %}
+	<title>{% block title %} 后台 {% endblock %}-TVMonitoring</title>
+
+	<link rel="stylesheet" href="/static/bootstrap/dist/css/bootstrap.min.css">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/static/font-awesome/css/font-awesome.min.css">
+	<!-- Ionicons -->
+	<link rel="stylesheet" href="/static/Ionicons/css/ionicons.min.css">
+	<!-- Theme style -->
+	<link rel="stylesheet" href="/static/css/AdminLTE.min.css">
+	<!-- AdminLTE Skins. We have chosen the skin-blue for this starter
+	      page. However, you can choose any other skin. Make sure you
+	      apply the skin class to the body tag so the changes take effect. -->
+	<link rel="stylesheet" href="/static/css/skins/skin-blue.min.css">
+    
+    <link rel="stylesheet" href="/static/css/uikit.min.css" />
+    <link rel="stylesheet" href="/static/css/tvmonitor.css" />
+    <link rel="stylesheet" href="/static/css/flatpickr.min.css" />
+    <script src="/static/js/uikit.min.js"></script>
+    <script src="/static/js/uikit-icons.min.js"></script>
+    <script src="/static/js/sha1.min.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js/tvmonitor.js"></script>
+    <script src="/static/js/flatpickr.js"></script>
+
+    {% block beforehead %}<!-- before head -->{% endblock %}
+</head>
+<body>
+	
+<div uk-sticky="media: 960" class="uk-navbar-container tm-navbar-container uk-sticky uk-sticky-fixed uk-active uk-sticky-below" style="position: fixed; top: 0px; width: 1440px;">
+	<div class="uk-container uk-container-expand">
+		<nav class="uk-navbar uk-margin-bottom" uk-navbar="mode: click"" >
+			<div class="uk-navbar-left">
+				<h3 class="tv-header" >四川移动家庭电视巡检管理系统后台</h3>
+            </div> 
+            <div class="uk-navbar-right">
+		    	<ul class="uk-navbar-nav">
+		    		{% if __user__ %}
+		    		
+
+					        <ul class="uk-navbar-nav">
+					            <li>
+					                <a href="#"><span class="tv-header">当前登录: {{{ __user__.name }}}</span></a>
+					                <div class="uk-navbar-dropdown">
+					                    <ul class="uk-nav uk-navbar-dropdown-nav">
+					                        <li class="uk-active"><a href="/signout">退出</a></li>
+					                        
+					                    </ul>
+					                </div>
+					            </li>
+					        </ul>
+
+					   
+
+		    		{% else %}
+			    	<li><a href="#" class="uk-icon-link uk-margin-small-right" uk-icon="sign-in">登录</a></li>
+
+			    	{% endif%}
+			    	
+		    	</ul>
+		    </div>
+       </nav>
+   </div>
+</div>
+
+<div class="tm-sidebar-left uk-visible@m">
+	
+	<div class="uk-card uk-card-small uk-card-body ">
+   
+        
+	    <ul class="uk-nav uk-nav-default">
+	        <li class="uk-nav-header">用户管理</li>
+	        <li><a href="/manage/user">用户列表</a></li>
+	        <li><a href="/manage/user/add">添加用户</a></li>
+	        <li class="uk-nav-divider"></li>
+	        <li class="uk-nav-header">值班管理</li>
+	        <li><a href="/manage/schedules">值班计划管理</a></li>
+	        <li><a href="/manage/inspectionitem">巡检项管理</a></li>
+	    </ul>
+
+        
+    
+	</div>
+
+</div>
+
+<div class="tm-main uk-section uk-section-default">
+	<div class="uk-container uk-container-small uk-position-relative">
+		
+			<div class="uk-grid-match uk-grid-small" uk-grid>
+				<!-- content -->
+				{% block content %}
+				{% endblock %}
+				<!-- // content -->	    
+			</div>
+
+	</div>
+</div>
+
+
+
+	
+
+	
+
+<script src="/static/jquery/dist/jquery.min.js"></script>
+<!-- Bootstrap 3.3.7 -->
+<script src="/static/bootstrap/dist/js/bootstrap.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/static/js/adminlte.min.js"></script>
+
+</body>
+</html>

@@ -25,7 +25,7 @@ def get_dbengine( **kw):
 	logging.info('connstr: %s' % connstr)
 
 	global __engine 
-	__engine = create_engine(connstr, echo=True)
+	__engine = create_engine(connstr, pool_recycle=300, echo=True)
 	Session.configure(bind=__engine)
 
 @contextmanager

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging; logging.basicConfig(level=logging.INFO)
+import logging
 
 import asyncio, os, json, time
 from datetime import datetime
@@ -13,6 +13,11 @@ from orm import  get_dbengine
 from handlers import cookie2user, COOKIE_NAME
 import pdb
 
+# 正式环境日志配置
+#logging.basicConfig(level=logging.WARNING, filename='./log/tvlog.txt', format='%(asctime)-15s %(message)s')
+
+# 开发环境日志配置
+logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
 
 
 def init_jinja2(app, **kw):
@@ -114,8 +119,8 @@ async def init(loop):
 	# 此处需插入路径绑定
 	add_routes(app, 'handlers')
 	add_static(app)
-	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 8088)
-	logging.info('server started at http://127.0.0.1:8088')
+	srv = await loop.create_server(app.make_handler(), '0.0.0.0', 8088)
+	logging.info('server started at 0.0.0.0:8088')
 	return srv
 
 loop = asyncio.get_event_loop()
