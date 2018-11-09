@@ -137,7 +137,7 @@ def api_register_user(*, account, password, name, is_admin, support_provider_id,
 		raise APIValueError('password','密码不能为空')
 	if not name or not name.strip():
 		raise APIValueError('name','用户名不能为空')
-	if not support_provider_id or support_provider_id < 1:
+	if not support_provider_id or int(support_provider_id) < 1:
 		raise APIValueError('support_provider','支撑单位不能为空')
 	if not phone or not phone.strip():
 		raise APIValueError('phone','联系电话不能为空')
@@ -471,12 +471,18 @@ def updateTroubleTicket(*, tid, report_channel, type, region, level, description
 		deal_user, deal_user_name)
 
 @get('/api/troubleticket/gettrouble')
-def getTrouble(*, page, items_perpage, status):
+def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region=''):
 	page = int(page)
 	items_perpage = int(items_perpage)
-	troubleCount = trouble.getAllTroubleCount(status) 
+	if(filterflag != '' and int(filterflag) == 1):
+		troubleCount = trouble.getAllTroubleCount(status, filterflag=True, stime=stime, 
+			etime=etime, region=region)
+		troubles = trouble.getTroublePageByStatus(page, items_perpage, status, 
+			filterflag=True, stime=stime, etime=etime, region=region)
+	else:
+		troubleCount = trouble.getAllTroubleCount(status)
+		troubles = trouble.getTroublePageByStatus(page, items_perpage, status) 
 	totalPages = math.ceil(troubleCount / items_perpage)
-	troubles = trouble.getTroublePageByStatus(page, items_perpage, status)
 
 	return dict(totalitems=troubleCount, totalpage=totalPages, troubles=troubles)
 
@@ -557,7 +563,9 @@ def getTroubleCategory():
 def getImpactArea():
 	return dict(areas=trouble.getImpactArea())
 
-
+@get('/api/troubleticket/getregion')
+def getRegion():
+	return dict(areas=trouble.getRegion())
 
 
 

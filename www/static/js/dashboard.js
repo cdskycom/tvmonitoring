@@ -166,6 +166,7 @@ var vm = new Vue({
 				case '0': return '紧急故障';
 				case '1': return '一般故障';
 				case '2': return '感知问题';
+				case '3': return '割接验证';
 				default: return '未知级别';
 			}
 		},

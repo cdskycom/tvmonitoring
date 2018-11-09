@@ -406,6 +406,27 @@ class ImpactArea(Base):
 		area_schema = ImpactAreaSchema()
 		return area_schema.dump(self).data
 
+# 上报区域
+class Region(Base):
+	__tablename__ = 'region'
+	id = Column(Integer, primary_key=True)
+	region_code = Column(String(12))
+	region_name = Column(String(45))
+
+	@classmethod
+	def getRegion(self):
+		with session_scope() as session:
+			regions = session.query(Region).all()
+			result = []
+			for region in regions:
+				result.append(region.to_dict())
+		return result
+
+	def to_dict(self):
+		from schema import RegionSchema
+		region_schema = RegionSchema()
+		return region_schema.dump(self).data
+
 
 # 排班表
 class Schedule(Base):

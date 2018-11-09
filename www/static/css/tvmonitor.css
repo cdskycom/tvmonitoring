@@ -42,6 +42,25 @@ element.style {
     list-style: none
 }
 
+.tv-form-control {
+    display: inline-block;
+    height: 34px;
+}
+
+
+.tv-row {
+    margin-top: 10px;
+}
+
+/*@media screen and (max-width: 940px) {
+
+    .tv-form-control {
+        display: block;
+        height: 34px;
+    
+    }
+}*/
+
 [v-cloak] {
   display: none;
 }

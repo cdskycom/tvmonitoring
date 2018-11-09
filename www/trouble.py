@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTask, SupportProvider, session_scope
-from orm import TroubleCategory, ImpactArea
+from orm import TroubleCategory, ImpactArea, Region
 from const import const
 import logging, time, datetime
 from apis import APIValueError, APIError
 import pdb
+
 
 
 def addTroubleTicket(report_channel, type, region, level, description, 
@@ -94,16 +95,37 @@ def updateTroubleTicket(tid, report_channel, type, region, level, description,
 	res['message'] = '更新工单成功'
 	return res
 
-def getAllTroubleCount(status):
-	filters = {}
+def getAllTroubleCount(status, filterflag=False, stime='', etime='', region=''):
+	filters = ()
 	if status.upper() != const.STATUS_ALL:
-		filters = {TroubleTicket.status == status}
+		filters = filters + (TroubleTicket.status == status,)
+	if filterflag:
+		if(stime == ''):
+			stime = '1970-1-1'
+		if(etime == ''):
+			etime = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=1),'%Y-%m-%d')
+		else:
+			# 结束日期+1 以在数据库查询比较日期时能包含当日数据
+			etime = datetime.datetime.strftime(datetime.datetime.strptime(etime,'%Y-%m-%d') + datetime.timedelta(days=1),'%Y-%m-%d')
+		filters = filters + (TroubleTicket.startTime > stime,)
+		filters = filters + (TroubleTicket.startTime < etime,)
+		filters = filters + (TroubleTicket.region == region,)
 	return TroubleTicket.getTroubleCount(*filters)
 
-def getTroublePageByStatus(page, items_perpage, status):
-	filters = {}
+def getTroublePageByStatus(page, items_perpage, status, filterflag=False, stime='', etime='', region=''):
+	filters = ()
 	if status.upper() != const.STATUS_ALL:
-		filters = {TroubleTicket.status == status}
+		filters = filters + (TroubleTicket.status == status,)
+	if filterflag:
+		if(stime == ''):
+			stime = '1970-1-1'
+		if(etime == ''):
+			etime = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=1),'%Y-%m-%d')
+		else:
+			etime = datetime.datetime.strftime(datetime.datetime.strptime(etime,'%Y-%m-%d') + datetime.timedelta(days=1),'%Y-%m-%d')
+		filters = filters + (TroubleTicket.startTime > stime,)
+		filters = filters + (TroubleTicket.startTime < etime,)
+		filters = filters + (TroubleTicket.region == region,)
 	return TroubleTicket.getTroublePage(page, items_perpage, *filters)
 
 
@@ -240,6 +262,8 @@ def getTroubleCategory():
 def getImpactArea():
 	return ImpactArea.getImpactArea()
 
+def getRegion():
+	return Region.getRegion()
 
 
 
