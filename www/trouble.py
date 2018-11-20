@@ -5,6 +5,8 @@ from orm import TroubleCategory, ImpactArea, Region
 from const import const
 import logging, time, datetime
 from apis import APIValueError, APIError
+from sqlalchemy.exc import IntegrityError
+
 import pdb
 
 
@@ -95,7 +97,8 @@ def updateTroubleTicket(tid, report_channel, type, region, level, description,
 	res['message'] = '更新工单成功'
 	return res
 
-def getAllTroubleCount(status, filterflag=False, stime='', etime='', region=''):
+# 返回工单查询过滤字段
+def getTroubleFilters(status, filterflag=False, stime='', etime='', region='', level='', confirmedType=''):
 	filters = ()
 	if status.upper() != const.STATUS_ALL:
 		filters = filters + (TroubleTicket.status == status,)
@@ -109,23 +112,20 @@ def getAllTroubleCount(status, filterflag=False, stime='', etime='', region=''):
 			etime = datetime.datetime.strftime(datetime.datetime.strptime(etime,'%Y-%m-%d') + datetime.timedelta(days=1),'%Y-%m-%d')
 		filters = filters + (TroubleTicket.startTime > stime,)
 		filters = filters + (TroubleTicket.startTime < etime,)
-		filters = filters + (TroubleTicket.region == region,)
+		if(region != ''):
+			filters = filters + (TroubleTicket.region == region,)
+		if(level != ''):
+			filters = filters + (TroubleTicket.level == level,)
+		if(confirmedType != ''):
+			filters = filters + (TroubleTicket.confirmed_type == confirmedType,)
+	return filters
+
+def getAllTroubleCount(status, filterflag=False, stime='', etime='', region='', level='', confirmedType=''):
+	filters = getTroubleFilters(status, filterflag, stime, etime, region, level, confirmedType)
 	return TroubleTicket.getTroubleCount(*filters)
 
-def getTroublePageByStatus(page, items_perpage, status, filterflag=False, stime='', etime='', region=''):
-	filters = ()
-	if status.upper() != const.STATUS_ALL:
-		filters = filters + (TroubleTicket.status == status,)
-	if filterflag:
-		if(stime == ''):
-			stime = '1970-1-1'
-		if(etime == ''):
-			etime = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=1),'%Y-%m-%d')
-		else:
-			etime = datetime.datetime.strftime(datetime.datetime.strptime(etime,'%Y-%m-%d') + datetime.timedelta(days=1),'%Y-%m-%d')
-		filters = filters + (TroubleTicket.startTime > stime,)
-		filters = filters + (TroubleTicket.startTime < etime,)
-		filters = filters + (TroubleTicket.region == region,)
+def getTroublePageByStatus(page, items_perpage, status, filterflag=False, stime='', etime='', region='', level='', confirmedType=''):
+	filters = getTroubleFilters(status, filterflag, stime, etime, region, level, confirmedType)
 	return TroubleTicket.getTroublePage(page, items_perpage, *filters)
 
 
@@ -151,93 +151,99 @@ def dealingTrouble(troubleid, dealingtype, nextprovider, reply, uid):
 	res = dict()
 	#生成任务
 	with session_scope() as session:
-		
-		if(dealingtype != const.DEALING_FINISHED):
-			#生成下一个任务
-			createtime = datetime.datetime.now()
-			assign_user = uid
-			newTask = TroubleTask(trouble_ticket=troubleid, support_provider=nextprovider,
-				remark=reply, createtime=createtime, assign_user=assign_user, status=0)
-			session.add(newTask)
-		#添加工单处理记录
-		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
-		dealingLog = addTroubleLog(user, troubleid, reply, dealingtype, nextprovider)
-		session.add(dealingLog)
+		try:
+			if(dealingtype != const.DEALING_FINISHED):
+				#生成下一个任务
+				createtime = datetime.datetime.now()
+				assign_user = uid
+				newTask = TroubleTask(trouble_ticket=troubleid, support_provider=nextprovider,
+					remark=reply, createtime=createtime, assign_user=assign_user, status=0)
+				session.add(newTask)
+			#添加工单处理记录
+			user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
+			dealingLog = addTroubleLog(user, troubleid, reply, dealingtype, nextprovider)
+			session.add(dealingLog)
 
-		#更新工单状态
-		
-		troubleTicketStatus = ''
-		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==troubleid).one()
+			#更新工单状态
+			
+			troubleTicketStatus = ''
+			trouble = session.query(TroubleTicket).filter(TroubleTicket.id==troubleid).one()
 
-		if(dealingtype == const.DEALING_FINISHED):
+			if(dealingtype == const.DEALING_FINISHED):
 
-			if not checkPermission(user.permission,'FIN'):
-				raise APIError('结单失败', 'permission', '你没有该权限')
-			troubleTicketStatus = const.STATUS_FINISHED
-			trouble.endtime = datetime.datetime.now()
-		else:
-			troubleTicketStatus = const.STATUS_DEALING
-		trouble.status = troubleTicketStatus
-		trouble.deal_user = uid
-		trouble.deal_user_name = user.name
-		trouble.dealingtime = datetime.datetime.now()
-		session.commit()
+				if not checkPermission(user.permission,'FIN'):
+					raise APIError('结单失败', 'permission', '你没有该权限')
+				troubleTicketStatus = const.STATUS_FINISHED
+				trouble.endtime = datetime.datetime.now()
+			else:
+				troubleTicketStatus = const.STATUS_DEALING
+			trouble.status = troubleTicketStatus
+			trouble.deal_user = uid
+			trouble.deal_user_name = user.name
+			trouble.dealingtime = datetime.datetime.now()
+			session.commit()
+		except IntegrityError:
+			raise APIError('处理失败', 'database', '转派厂家信息异常')
 	res['returncode'] = const.RETURN_OK
 	res['message'] = '任务工单处理成功' + dealingtype
 	return res
 
 
 # 工单处理
-def  dealingTask(dealingtype, taskid, nextprovider, reply, uid):
+def  dealingTask(dealingtype, taskid, nextprovider, reply, confirmedtype, uid):
 	res = dict()
 	with session_scope() as session:
-		user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
-		#更新当前工单，接单不添加流转记录，仅更新状态和接单时间
-		task = session.query(TroubleTask).filter(TroubleTask.id==taskid).one()
-		if(dealingtype == const.DEALING_ACCEPT):
-			task.status = const.TASK_ACCEPTED
-			task.accepttime = datetime.datetime.now()
-		else:
-			task.status = const.TASK_FINISHED
-			task.reply = reply
-			task.endtime = datetime.datetime.now()
-			#添加工程单处理记录
-			dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype, nextprovider)
-			session.add(dealingLog)
+		try:
+			user = session.query(User).join(User.support_provider).filter(User.id==uid).one()
+			#更新当前工单，接单不添加流转记录，仅更新状态和接单时间
+			task = session.query(TroubleTask).filter(TroubleTask.id==taskid).one()
+			if(dealingtype == const.DEALING_ACCEPT):
+				task.status = const.TASK_ACCEPTED
+				task.accepttime = datetime.datetime.now()
+			else:
+				task.status = const.TASK_FINISHED
+				task.reply = reply
+				task.endtime = datetime.datetime.now()
+				#添加工程单处理记录
+				dealingLog = addTroubleLog(user, task.trouble.id, reply, dealingtype, nextprovider)
+				session.add(dealingLog)
+			
+			#接单和完成任务均不生成下一个任务
+			if(dealingtype != const.DEALING_FINISHED and dealingtype != const.DEALING_ACCEPT):
+				#生成下一个任务
+				trouble_ticket = task.trouble.id
+				support_provider = nextprovider
+				remark = reply
+				createtime = datetime.datetime.now()
+				assign_user = uid
+				newTask = TroubleTask(trouble_ticket=trouble_ticket, support_provider=support_provider,
+					remark=remark, createtime=createtime, assign_user=assign_user, status=0)
+				session.add(newTask)
 		
-		#接单和完成任务均不生成下一个任务
-		if(dealingtype != const.DEALING_FINISHED and dealingtype != const.DEALING_ACCEPT):
-			#生成下一个任务
-			trouble_ticket = task.trouble.id
-			support_provider = nextprovider
-			remark = reply
-			createtime = datetime.datetime.now()
-			assign_user = uid
-			newTask = TroubleTask(trouble_ticket=trouble_ticket, support_provider=support_provider,
-				remark=remark, createtime=createtime, assign_user=assign_user, status=0)
-			session.add(newTask)
+			#更新工单状态
+			troubleTicketStatus = ''
+			trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
 
-		
+			if(dealingtype == const.DEALING_FINISHED):
 
-		
-		#更新工单状态
-		troubleTicketStatus = ''
-		trouble = session.query(TroubleTicket).filter(TroubleTicket.id==task.trouble.id).one()
-
-		if(dealingtype == const.DEALING_FINISHED):
-
-			if not checkPermission(user.permission,'FIN'):
-				raise APIError('结单失败', 'permission', '你没有该权限')
-			troubleTicketStatus = const.STATUS_FINISHED
-			trouble.endtime = datetime.datetime.now()
-		else:
-			troubleTicketStatus = const.STATUS_DEALING
-		trouble.status = troubleTicketStatus
-		trouble.deal_user = uid
-		trouble.deal_user_name = user.name
-		trouble.dealingtime = datetime.datetime.now()
-		session.commit()
-
+				if not checkPermission(user.permission,'FIN'):
+					raise APIError('结单失败', 'permission', '你没有该权限')
+				troubleTicketStatus = const.STATUS_FINISHED
+				trouble.endtime = datetime.datetime.now()
+				if not confirmedtype or not confirmedtype.strip():
+					session.rollback()
+					raise APIValueError('confirmedtype','问题归类不能为空')
+				else:
+					trouble.confirmed_type = confirmedtype
+			else:
+				troubleTicketStatus = const.STATUS_DEALING
+			trouble.status = troubleTicketStatus
+			trouble.deal_user = uid
+			trouble.deal_user_name = user.name
+			trouble.dealingtime = datetime.datetime.now()
+			session.commit()
+		except IntegrityError:
+			raise APIError('处理失败', 'database', '转派厂家信息异常')
 	res['returncode'] = const.RETURN_OK
 	res['message'] = '任务工单处理成功' + dealingtype
 	return res
@@ -256,16 +262,14 @@ def addTroubleLog(user, troubleId, reply, dealingtype, nextprovider):
 		createtime=datetime.datetime.now(),next_provider_id=nextprovider)
 	return dealingLog
 
-def getTroubleCategory():
-	return TroubleCategory.getCategory()
+def getTroubleCategory(categoryType):
+	return TroubleCategory.getCategory(categoryType)
 
 def getImpactArea():
 	return ImpactArea.getImpactArea()
 
 def getRegion():
 	return Region.getRegion()
-
-
 
 # 通过用户或分组的权限字符串检查特定权限
 def checkPermission(userPermission, needed):

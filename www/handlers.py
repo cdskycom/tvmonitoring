@@ -471,14 +471,14 @@ def updateTroubleTicket(*, tid, report_channel, type, region, level, description
 		deal_user, deal_user_name)
 
 @get('/api/troubleticket/gettrouble')
-def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region=''):
+def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region='', level='', confirmedtype=''):
 	page = int(page)
 	items_perpage = int(items_perpage)
 	if(filterflag != '' and int(filterflag) == 1):
 		troubleCount = trouble.getAllTroubleCount(status, filterflag=True, stime=stime, 
-			etime=etime, region=region)
+			etime=etime, region=region, level=level, confirmedType=confirmedtype)
 		troubles = trouble.getTroublePageByStatus(page, items_perpage, status, 
-			filterflag=True, stime=stime, etime=etime, region=region)
+			filterflag=True, stime=stime, etime=etime, region=region, level=level, confirmedType=confirmedtype)
 	else:
 		troubleCount = trouble.getAllTroubleCount(status)
 		troubles = trouble.getTroublePageByStatus(page, items_perpage, status) 
@@ -522,14 +522,14 @@ def getProvider():
 
 #任务处理接口
 @post('/api/troubleticket/dealingtask')
-def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
+def dealingTask(*,dealingtype, taskid, nextprovider, reply, confirmedtype,uid):
 	
 	# dealingtype： REPLY-回单， TRANSIT- 转派, FINISHED-结单
 	# taskid -工单ID
 	# nextprovider-下个处理厂家
 	# reply - 工单处理备注
 
-	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, uid)
+	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, confirmedtype, uid)
 
 #工单直接处理接口
 @post('/api/troubleticket/dealingtrouble')
@@ -556,8 +556,8 @@ def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 	return res
 
 @get('/api/troubleticket/gettroublecategory')
-def getTroubleCategory():
-	return dict(categories=trouble.getTroubleCategory())
+def getTroubleCategory(*, categorytype):
+	return dict(categories=trouble.getTroubleCategory(categorytype))
 
 @get('/api/troubleticket/getimpactarea')
 def getImpactArea():

@@ -15,9 +15,11 @@ var vm = new Vue({
 			currentTask: '',
 			curTaskLogs: '',
 			toNextProvider: -1, //派单到下一个厂家的ID
-			taskReply: ''
+			taskReply: '',
+			confirmedType: '',
 		},
 		providers: '',
+		confirmedCat: '', //回单时的问题归属类别
 		validateerror: false,
 		validatemessage:'',
 		messageTitle: '',  //消息弹窗标题
@@ -65,6 +67,15 @@ var vm = new Vue({
 			});
 
 		},
+		doReply:function(){
+			that = this;
+			var url = '/api/troubleticket/gettroublecategory?categorytype=CONF';
+			axios.get(url).then(function(res){
+				that.confirmedCat = res.data.categories;
+				
+			});
+
+		},
 		//任务工单处理
 		dealTask:function(t){
 			that = this;
@@ -73,6 +84,11 @@ var vm = new Vue({
 			if(t == 'REPLY'){
 				nextprovider = this.tasks.currentTask.assigner.support_provider.id;
 			}
+			if(t == 'FINISHED'){
+				confirmedType = this.tasks.confirmedType;
+			}else{
+				confirmedType = '';
+			}
 			reply = this.tasks.taskReply;
 			
 			axios.post('/api/troubleticket/dealingtask',{
@@ -80,6 +96,7 @@ var vm = new Vue({
 					taskid:this.tasks.currentTask.id,
 					nextprovider: nextprovider,
 					reply: reply,
+					confirmedtype: confirmedType,
 					uid: userinfo.uid
 				}).then(function(res){
 					if(res.data.error){

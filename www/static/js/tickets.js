@@ -29,6 +29,7 @@ var vm = new Vue({
 		troubleCategories: [], //故障类型
 		impactArea:[], //故障影响范围
 		region:[], //故障上报区域
+		confirmedType: [], //问题归属列表
 		newTrouble: {
 			report_channel: '',
 			type: '',
@@ -57,6 +58,8 @@ var vm = new Vue({
 			stime: '',	//工单起止日期过滤
 			etime: '',
 			filterRegion: '', //过滤区域信息
+			filterConfirmedType:'', //过滤问题归属
+			level: '',
 			totalItems: 0,
 			totalPage: 1,
 			troubleList: [],
@@ -76,7 +79,9 @@ var vm = new Vue({
 			var url = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
 			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 			if(this.filter){
-				url = url + '&filterflag=1' + '&stime=' + this.troubles.stime + '&etime=' + this.troubles.etime + '&region=' + this.troubles.filterRegion;
+				url = url + '&filterflag=1' + '&stime=' + this.troubles.stime + 
+				'&etime=' + this.troubles.etime + '&region=' + this.troubles.filterRegion + '&level=' + 
+				this.troubles.level + '&confirmedtype=' + this.troubles.filterConfirmedType;
 			}
 			return url;
 		}
@@ -117,7 +122,7 @@ var vm = new Vue({
 		},
 		getTroubleCategory:function(){
 			that = this;
-			var url = '/api/troubleticket/gettroublecategory';
+			var url = '/api/troubleticket/gettroublecategory?categorytype=INIT';
 			axios.get(url).then(function(res){
 				that.troubleCategories= res.data.categories;	
 				
@@ -141,6 +146,14 @@ var vm = new Vue({
 				
 			});
 
+		},
+		getConfirmedType:function(){
+			that = this;
+			var url = '/api/troubleticket/gettroublecategory?categorytype=CONF';
+			axios.get(url).then(function(res){
+				that.confirmedType= res.data.categories;	
+				
+			});
 		},
 		createTroubleTicket:function(event){
 			that = this;
@@ -271,12 +284,7 @@ var vm = new Vue({
 			// var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
 			// this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 
-			axios.get(this.troubleUrl).then(function(res){
-				that.troubles.totalItems = res.data.totalitems;
-				that.troubles.totalPage = res.data.totalpage;
-				that.troubles.troubleList = res.data.troubles;
-
-			});
+			// changechange
 		},
 
 		getLogs:function(id){
@@ -430,6 +438,8 @@ var vm = new Vue({
 
 		},
 		doFilter:function(){
+			that = this;
+			that.troubles.currentPage = 1;
 			axios.get(this.troubleUrl).then(function(res){
 				that.troubles.totalItems = res.data.totalitems;
 				that.troubles.totalPage = res.data.totalpage;
@@ -470,6 +480,7 @@ var vm = new Vue({
 		this.getTroubleCategory();
 		this.getImpactArea();
 		this.getRegion();
+		this.getConfirmedType();
   	},
 	filters:{
 		//日期格式化过滤器

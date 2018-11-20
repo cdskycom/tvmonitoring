@@ -222,6 +222,7 @@ class TroubleTicket(Base):
 	deal_user = Column(Integer, ForeignKey('users.id'))
 	deal_user_name = Column(String(45))
 	dealingtime = Column(DateTime)
+	confirmed_type = Column(String(45))
 
 	tasks = relationship("TroubleTask", back_populates="trouble")
 
@@ -371,11 +372,12 @@ class TroubleCategory(Base):
 	__tablename__ = 'trouble_category'
 	id = Column(Integer, primary_key=True)
 	name = Column(String(45))
+	category_type = Column(String(4))
 
 	@classmethod
-	def getCategory(self):
+	def getCategory(self,categoryType):
 		with session_scope() as session:
-			categories = session.query(TroubleCategory).all()
+			categories = session.query(TroubleCategory).filter_by(category_type=categoryType).all()
 			result = []			
 			for category in categories:
 				result.append(category.to_dict())	
