@@ -11,6 +11,7 @@ from config import configs
 # import orm
 from orm import  get_dbengine
 from handlers import cookie2user, COOKIE_NAME
+from uuid import uuid1
 import pdb
 
 # 正式环境日志配置
@@ -52,24 +53,24 @@ async def logger_factory(app, handler):
 	return logger
 
 async def auth_factory(app, handler):
-    
-    async def auth(request):
-        logging.info('check user: %s %s' % (request.method, request.path))
-        request.__user__ = None
-        cookie_str = request.cookies.get(COOKIE_NAME)
+	
+	async def auth(request):
+		logging.info('check user: %s %s' % (request.method, request.path))
+		request.__user__ = None
+		cookie_str = request.cookies.get(COOKIE_NAME)
 
-        if cookie_str:
-            user = cookie2user(cookie_str)
-            if user:
-                logging.info('set current user: %s' % user['account'])
-                request.__user__ = user
-        if not (request.path.startswith('/signin') or request.path.startswith('/static')) and request.__user__ is None:
-            return web.HTTPFound('/signin')
-        if (request.path.startswith('/manage') and not request.__user__['is_admin']):
-        	return web.HTTPFound('/signin')
-      
-        return ( await handler(request))
-    return auth
+		if cookie_str:
+			user = cookie2user(cookie_str)
+			if user:
+				logging.info('set current user: %s' % user['account'])
+				request.__user__ = user
+		if not (request.path.startswith('/signin') or request.path.startswith('/static')) and request.__user__ is None:
+			return web.HTTPFound('/signin')
+		if (request.path.startswith('/manage') and not request.__user__['is_admin']):
+			return web.HTTPFound('/signin')
+	  
+		return ( await handler(request))
+	return auth
 
 async def response_factory(app, handler):
 	
@@ -113,6 +114,7 @@ async def response_factory(app, handler):
 		resp.content_type = 'text/plain;charset=utf-8'
 		return resp
 	return response
+
 
 async def init(loop):
 	#初始化数据aiomysql数据，得到全局变量__engine

@@ -25,7 +25,7 @@ def get_dbengine( **kw):
 	logging.info('connstr: %s' % connstr)
 
 	global __engine 
-	__engine = create_engine(connstr, pool_recycle=300)
+	__engine = create_engine(connstr, pool_recycle=300, echo=True)
 	Session.configure(bind=__engine)
 
 @contextmanager
@@ -222,6 +222,7 @@ class TroubleTicket(Base):
 	deal_user = Column(Integer, ForeignKey('users.id'))
 	deal_user_name = Column(String(45))
 	dealingtime = Column(DateTime)
+	confirmed_type = Column(String(45))
 
 	tasks = relationship("TroubleTask", back_populates="trouble")
 
@@ -371,11 +372,12 @@ class TroubleCategory(Base):
 	__tablename__ = 'trouble_category'
 	id = Column(Integer, primary_key=True)
 	name = Column(String(45))
+	category_type = Column(String(4))
 
 	@classmethod
-	def getCategory(self):
+	def getCategory(self,categoryType):
 		with session_scope() as session:
-			categories = session.query(TroubleCategory).all()
+			categories = session.query(TroubleCategory).filter_by(category_type=categoryType).all()
 			result = []			
 			for category in categories:
 				result.append(category.to_dict())	
@@ -405,6 +407,27 @@ class ImpactArea(Base):
 		from schema import ImpactAreaSchema
 		area_schema = ImpactAreaSchema()
 		return area_schema.dump(self).data
+
+# 上报区域
+class Region(Base):
+	__tablename__ = 'region'
+	id = Column(Integer, primary_key=True)
+	region_code = Column(String(12))
+	region_name = Column(String(45))
+
+	@classmethod
+	def getRegion(self):
+		with session_scope() as session:
+			regions = session.query(Region).all()
+			result = []
+			for region in regions:
+				result.append(region.to_dict())
+		return result
+
+	def to_dict(self):
+		from schema import RegionSchema
+		region_schema = RegionSchema()
+		return region_schema.dump(self).data
 
 
 # 排班表

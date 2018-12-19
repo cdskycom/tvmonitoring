@@ -14,11 +14,16 @@ from handlers import cookie2user, COOKIE_NAME
 import pdb
 
 # 正式环境日志配置
-logging.basicConfig(level=logging.WARNING, filename='./log/tvlog.txt', format='%(asctime)-15s %(message)s')
+# logging.basicConfig(level=logging.WARNING, filename='./log/tvlog.txt', format='%(asctime)-15s %(levelname)s  %(name)s %(message)s')
+
 
 # 开发环境日志配置
-#logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s %(name)s')
 
+aioLogger = logging.getLogger('aiohttp')
+aioLogger.setLevel(logging.INFO)
+asyLogger = logging.getLogger('asyncio')
+asyLogger.setLevel(logging.INFO)
 
 def init_jinja2(app, **kw):
 	logging.info('init jinja2...')

@@ -24,7 +24,7 @@
                 <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#modal-createtrouble" v-on:click="initNewTrouble">新建工单</button>
                 <!-- <button type="button" class="btn btn-secondary">编辑工单</button> -->
                 <button type="button" class="btn btn-secondary" v-on:click="doDealTrouble('TRANSIT','batch')">批量派单</button>
-                <button type="button" class="btn btn-success" v-on:click="doDealTrouble('FINISHED','batch')" v-if="hasFinishedPermission">批量回单</button>
+                <button type="button" class="btn btn-success" v-on:click="doDealTrouble('FINISHED','batch')" v-if="hasFinishedPermission" disabled="">批量回单</button>
                 <button type="button" class="btn btn-secondary"><i class="fa fa-fw fa-cloud-download"></i>导出工单</button>
                 <label style="margin-left:15px;">工单状态:</label>
                     <div class="btn-group">
@@ -116,7 +116,7 @@
                   <td><span >{{ t.confirmed_type }}</span></td>
                   <td><span >{{ t.status | statusStr }}</span></td>
                   <td><span >{{ t.startTime | DateTimeFtt }}</span></td>
-                  <td><span v-bind:class="['label', {'label-danger': t.level==0, 'label-warning': t.level==1, 'label-info': t.level==2}]" >{{ t.level | levelStr}}</span></td>
+                  <td><span v-bind:class="['label', {'label-danger': t.level==0, 'label-warning': t.level==1, 'label-info': t.level==2, 'label-primary': t.level==3}]" >{{ t.level | levelStr}}</span></td>
                   <td><span v-text="t.region"></span></td>
                   <td><span>{{ t.description | shortcutStr(strLengthInTable) }}</span></td>
                   <td><span v-text="t.impact"></span></td>

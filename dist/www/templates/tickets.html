@@ -25,21 +25,63 @@
                 <!-- <button type="button" class="btn btn-secondary">编辑工单</button> -->
                 <button type="button" class="btn btn-secondary" v-on:click="doDealTrouble('TRANSIT','batch')">批量派单</button>
                 <button type="button" class="btn btn-success" v-on:click="doDealTrouble('FINISHED','batch')" v-if="hasFinishedPermission">批量回单</button>
-                <div class="btn-group">
-                      <button type="button" class="btn btn-default btn-flat" >{{ that.troublesTitle }}</button>
-                      <button type="button" class="btn btn-default btn-flat dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                        <span class="caret"></span>
-                        <span class="sr-only">Toggle Dropdown</span>
-                      </button>
-                      <ul class="dropdown-menu" role="menu">
-                        <li><a href="#" v-on:click="changeStatus('ALL')">所有工单</a></li>
-                        <li><a href="#" v-on:click="changeStatus('DEALING')">在途工单</a></li>
-                        <li><a href="#" v-on:click="changeStatus('ACCEPT')">待分派工单</a></li>
-                        <li><a href="#" v-on:click="changeStatus('FINISHED')">已完成工单</a></li>
-                      </ul>
+                <button type="button" class="btn btn-secondary"><i class="fa fa-fw fa-cloud-download"></i>导出工单</button>
+                <label style="margin-left:15px;">工单状态:</label>
+                    <div class="btn-group">
+                          <button type="button" class="btn btn-default btn-flat" >{{ that.troublesTitle }}</button>
+                          <button type="button" class="btn btn-default btn-flat dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                            <span class="caret"></span>
+                            <span class="sr-only">Toggle Dropdown</span>
+                          </button>
+                          <ul class="dropdown-menu" role="menu">
+                            <li><a href="#" v-on:click="changeStatus('ALL')">所有工单</a></li>
+                            <li><a href="#" v-on:click="changeStatus('DEALING')">在途工单</a></li>
+                            <li><a href="#" v-on:click="changeStatus('ACCEPT')">待分派工单</a></li>
+                            <li><a href="#" v-on:click="changeStatus('FINISHED')">已完成工单</a></li>
+                          </ul>     
                     </div>
-              
-                <button type="button" class="btn btn-secondary pull-right"><i class="fa fa-fw fa-cloud-download"></i>导出工单</button>
+                <button class="btn btn-info btn-small" v-on:click="doFilter">查找</button>
+                <div class="btn pull-right">
+                  <input type="checkbox" id="checkbox" v-model="filter">
+                  <label  for="checkbox">条件筛选</label>
+                </div>
+                  
+                  <div v-if="filter"  class="tv-row">
+                    
+                    <label>日期:</label><input class="tv-form-control" type="date" v-model="troubles.stime">
+                    <label>至:</label><input class="tv-form-control" type="date" v-model="troubles.etime">
+                    <label>故障级别:</label>
+                    <div class="tv-form-control">
+                        <select class="form-control" v-model="troubles.level">
+                          <option value="" selected="">不限</option>
+                          <option value="0">紧急故障</option>
+                          <option value="1">一般故障</option>
+                          <option value="2">感知问题</option>
+                          <option value="3">割接验证</option>
+                        </select>
+                    </div>
+                    <label>区域:</label>
+                    <div class="tv-form-control">
+                        <select class="form-control" v-model="troubles.filterRegion">
+                            <option value="" selected="">不限</option>
+                            <option v-for="r in region" v-bind:value="r.region_name" >
+                              {{ r.region_name }}
+                            </option>
+                        </select>
+                    </div>
+                    <label>问题归属:</label>
+                    <div class="tv-form-control">
+                        <select class="form-control" v-model="troubles.filterConfirmedType">
+                            <option value="" selected="">不限</option>
+                            <option v-for="r in confirmedType" v-bind:value="r.name" >
+                              {{ r.name }}
+                            </option>
+                        </select>
+                    </div>
+                    
+                  </div>
+                
+                
             </div>
           </div>
         </div>
@@ -59,6 +101,7 @@
                 <tr>
                   <th></th>
                   <th style="width: 10px">ID</th>
+                  <th style="width: 90px">问题归属</th>
                   <th style="width: 80px">工单状态</th>
                   <th style="width: 130px">故障时间</th>
                   <th style="width: 80px">故障级别</th>
@@ -70,6 +113,7 @@
                 <tr v-for="t in troubles.troubleList">
                   <td><input type="checkbox"  v-bind:value="t.id" v-model="checkedTroubles" ></td>
                   <td><span v-text="t.id"></span></td>
+                  <td><span >{{ t.confirmed_type }}</span></td>
                   <td><span >{{ t.status | statusStr }}</span></td>
                   <td><span >{{ t.startTime | DateTimeFtt }}</span></td>
                   <td><span v-bind:class="['label', {'label-danger': t.level==0, 'label-warning': t.level==1, 'label-info': t.level==2}]" >{{ t.level | levelStr}}</span></td>
@@ -83,9 +127,9 @@
                 </tr>
                
               </tbody></table>
-              <div class="overlay" v-if="troubles.troubleList == ''">
+             <!--  <div class="overlay" v-if="troubles.troubleList == ''">
                 <i class="fa fa-refresh fa-spin"></i>
-              </div>
+              </div> -->
             </div>
             <div class="box-footer clearfix">
               
@@ -144,7 +188,12 @@
                             <label  class="col-sm-4 control-label">上报区域</label>
 
                             <div class="col-sm-8">
-                               <input type="text" class="form-control" v-model="newTrouble.region" v-bind:disabled="troubles.viewTrouble">
+                              <select class="form-control" v-model="newTrouble.region" v-bind:disabled="troubles.viewTrouble" v-if="!troubles.viewTrouble">
+                                  <option v-for="r in region" v-bind:value="r.region_name" >
+                                    {{ r.region_name }}
+                                  </option>
+                              </select>
+                              <input type="text" class="form-control" v-bind:value="newTrouble.region" v-if="troubles.viewTrouble" disabled="">
                             </div>
                           </div>
                       </div>
@@ -226,6 +275,7 @@
                                   <option value="0">紧急故障</option>
                                   <option value="1">一般故障</option>
                                   <option value="2">感知问题</option>
+                                  <option value="3">割接验证</option>
                                 </select>
                             </div>
                            
@@ -271,7 +321,7 @@
               <div class="modal-footer">    
                     <button type="button" class="btn  btn-default pull-left" v-if="troubles.viewTrouble" v-on:click="doEditTrouble">启用编辑</button>
                     <button type="button" class="btn  btn-default pull-left" v-if="troubles.viewTrouble" v-on:click="doDealTrouble('TRANSIT')" data-dismiss="modal">派单</button>
-                    <button type="button" class="btn  btn-success" data-dismiss="modal"  v-if="hasFinishedPermission & troubles.viewTrouble" v-on:click="doDealTrouble('FINISHED')">回单</button>
+                   <!--  <button type="button" class="btn  btn-success" data-dismiss="modal"  v-if="hasFinishedPermission & troubles.viewTrouble" v-on:click="doDealTrouble('FINISHED')">回单</button> -->
                     <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal" v-on:click="createTroubleTicket" v-if="troubles.addTrouble ">创建</button>
                      <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal"  v-if="troubles.viewTrouble">确定</button>
                      <button type="button" class="btn  btn-primary" data-toggle="modal" data-target="#modal-reply" data-dismiss="modal"  v-if="troubles.editTrouble" v-on:click="updateTroubleTicket">保存</button>

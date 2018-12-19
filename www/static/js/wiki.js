@@ -2,46 +2,50 @@
 var vm = new Vue({
 	el:'#app',
 	data:{
-		wikistring: "<script>alert('ok')</script>",
+		file: '',
 			
 	},
 	
 	methods:{
-		selectProvider:function(p){
-			that = this;
-			that.curProvider = p;
+		handleFileUpload:function(){
+			this.file = this.$refs.file.files[0];
+		},
+		submitFile:function(){
+			var formData = new FormData();
 
-		}
+            /*
+                Add the form data we need to submit
+            */
+            formData.append('name', 'xieweizhong')
+            formData.append('age', 40);
+            formData.append('ufile', this.file);
+
+
+        /*
+          Make the request to the POST /single-file URL
+        */
+            axios.post( '/single-file',
+                formData,
+                {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+	                }
+	              }
+	            ).then(function(){
+	          console.log('SUCCESS!!');
+	        })
+	        .catch(function(){
+	          console.log('FAILURE!!');
+	        });
+			}
 		
 	},
 
 	//初始化页面数据
 	created: function () {
     	
-    	that = this;
-		// var troubleUrl = baseUrl + 'api/troubleticket/getprovider';
-		// axios.get(troubleUrl).then(function(res){
-		// 	that.providers = res.data.providers;
-		// 	that.curProvider = that.providers[0];
-
-		// });
 		
   	},
 	
 });
 	
-
-	// window.onload = function(){
-	// 	if(ID){
-	// 		axios.get('/api/users/' + ID).then(res=>{initVM(res.data.user,'edit')});
-	// 	}
-	// 	else{
-	// 		initVM({
-	// 			account:'',
-	// 			password:'',
-	// 			name:'',
-	// 			is_admin:0
-	// 		},'add')
-	// 	}
-
-	// }

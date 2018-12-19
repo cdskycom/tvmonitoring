@@ -6,9 +6,10 @@ from sqlalchemy.orm.exc import NoResultFound
 from aiohttp import web
 from config import configs
 from const import const
-import sys, logging, hashlib, base64, re, json, time, datetime, math
+import sys, logging, hashlib, base64, re, json, time, datetime, math, os
 import trouble
 import pdb
+from uuid import uuid1
 
 COOKIE_NAME = 'tvmonitorsession'
 _COOKIE_KEY = configs.session.secret
@@ -56,20 +57,20 @@ def cookie2user(cookie_str):
 		return None
 
 @get('/signin')
-def signin():
+async def signin():
 	return {
 		'__template__': 'signin.html'
 	}
 @get('/signout')
-def signout(request):
-    referer = request.headers.get('Referer')
-    r = web.HTTPFound(referer or '/')
-    r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
-    logging.info('user signed out.')
-    return r
+async def signout(request):
+	referer = request.headers.get('Referer')
+	r = web.HTTPFound(referer or '/')
+	r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
+	logging.info('user signed out.')
+	return r
 
 @get('/')
-def index(request):
+async def index(request):
 	# logging.info('enter index...')
 	# return {
 	# 	'__template__': 'index.html'
@@ -79,7 +80,7 @@ def index(request):
 	}
 
 @get('/inspec')
-def getInspec(request):
+async def getInspec(request):
 	# logging.info('enter index...')
 	# return {
 	# 	'__template__': 'index.html'
@@ -89,7 +90,7 @@ def getInspec(request):
 	}
 
 @get('/manage')
-def manageIndex(request):
+async def manageIndex(request):
 	logging.info('enter index...')
 	return {
 		'__template__': 'managebase.html'
@@ -97,13 +98,13 @@ def manageIndex(request):
 
 
 @get('/monitor_log')
-def monitorlog(request):
+async def monitorlog(request):
 	return {
 		'__template__': 'monitor_log.html'
 	}
 
 @get('/api/users')
-def api_users(*,page,items_perpage):
+async def api_users(*,page,items_perpage):
 	page = int(page)
 	items_perpage = int(items_perpage)
 	userCount = User.getUserCount()
@@ -114,7 +115,7 @@ def api_users(*,page,items_perpage):
 
 
 @get('/api/users/{id}')
-def api_get_users(request, *, id):
+async def api_get_users(request, *, id):
 	filters = {User.id == id}
 	users = User.getAll(*filters)
 	for user in users:
@@ -127,7 +128,7 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 # 添加用户
 @post('/api/users')
-def api_register_user(*, account, password, name, is_admin, support_provider_id, phone, email):
+async def api_register_user(*, account, password, name, is_admin, support_provider_id, phone, email):
 	logging.info('添加用户的密码: %s' % password)
 	if not account or not account.strip():
 		raise APIValueError('account','账号不能为空')
@@ -162,7 +163,7 @@ def api_register_user(*, account, password, name, is_admin, support_provider_id,
 	return res
 
 @post('/signin/authenticate')
-def authenticate(*, account, password):
+async def authenticate(*, account, password):
 	logging.info('登录用户的密码： %s' % password)
 	if not account:
 		raise APIValueError('account', '账号不能为空.')
@@ -193,7 +194,7 @@ def authenticate(*, account, password):
 	return r
 
 @post('/api/user/modifypassword/{id}')
-def api_modify_password(id, request, *, oldpassword, newpassword):
+async def api_modify_password(id, request, *, oldpassword, newpassword):
 	if not oldpassword:
 		raise APIValueError('password', '老密码不能为空')
 	if not newpassword:
@@ -221,7 +222,7 @@ def api_modify_password(id, request, *, oldpassword, newpassword):
 
 
 @post('/manage/api/user/update/{id}')
-def api_update_user(id, request, *, account, password, name, is_admin, phone, email):
+async def api_update_user(id, request, *, account, password, name, is_admin, phone, email):
 	if not account or not account.strip():
 		raise APIValueError('account','账号不能为空')
 	if not name or not name.strip():
@@ -237,7 +238,7 @@ def api_update_user(id, request, *, account, password, name, is_admin, phone, em
 	return  user
 
 @post('/manage/api/user/reset/{id}')
-def api_reset_user(id, request, *, newpassword):
+async def api_reset_user(id, request, *, newpassword):
 	if not newpassword  or not newpassword.strip():
 		raise APIValueError('account','密码不能为空')
 	user = User.getUserById(id)
@@ -253,7 +254,7 @@ def api_reset_user(id, request, *, newpassword):
 
 
 @post('/manage/api/user/delete/{id}')
-def api_delete_user(id, request):
+async def api_delete_user(id, request):
 	res = dict()
 	try:
 		if User.deleteUser(id):
@@ -272,14 +273,14 @@ def api_delete_user(id, request):
 	return res
 
 @get('/manage/user')
-def adduser():
+async def adduser():
 	return {
 		'__template__': 'user.html'
 
 	}
 
 @get('/manage/user/edit')
-def editUser(*, id):
+async def editUser(*, id):
 	return {
 		'__template__': 'user_edit.html',
 		'id': id,
@@ -288,7 +289,7 @@ def editUser(*, id):
 	}
 
 @get('/manage/user/add')
-def addUser():
+async def addUser():
 	return {
 		'__template__': 'user_edit.html',
 		'id': '',
@@ -298,7 +299,7 @@ def addUser():
 
 
 @get('/api/inspections')
-def api_get_inspections(request):
+async def api_get_inspections(request):
 
 	inspections = Inspection.getAll()
 	
@@ -308,7 +309,7 @@ def api_get_inspections(request):
 
 
 @get('/manage/schedules')
-def schedule(request):
+async def schedule(request):
 	return {
 		'__template__': 'schedules.html'
 	}
@@ -321,7 +322,7 @@ def schedule(request):
 # exchangeTime: 换班时间，当前只是用白班换班时间，其余班次按总班次计算得出
 # needInspectionTask:创建值班计划时是否生成对应巡检任务
 @post('/api/addschedules')
-def api_add_schedules(*, startDate, endDate, users, shiftnums, exchangeTime, insInterval, needInspectionTask=False):
+async def api_add_schedules(*, startDate, endDate, users, shiftnums, exchangeTime, insInterval, needInspectionTask=False):
 	try:
 		st = time.strptime(startDate, '%Y-%m-%d')
 		et = time.strptime(endDate, '%Y-%m-%d')
@@ -383,7 +384,7 @@ def api_add_schedules(*, startDate, endDate, users, shiftnums, exchangeTime, ins
 	return res
 
 # 帮助函数，根据用户id列表返回以指定符号分隔的用户名字符串
-def getUserName(delimiter,users):
+async def getUserName(delimiter,users):
 	userids = []
 	result = []
 	for userid in users:
@@ -398,20 +399,20 @@ def getUserName(delimiter,users):
 
 
 @get('/manage/inspectionitem')
-def inspectionItem(request):
+async def inspectionItem(request):
 	return {
 		'__template__': 'inspectionitem.html'
 	}
 
 @get('/api/gettype')
-def getInsType():
+async def getInsType():
 
 	types = InspectionType.getTypes()
 	
 	return dict(types=types)
 
 @post('/api/addinspectionitem')
-def addItem(*, content, criterion, type_code, itemrequired=1):
+async def addItem(*, content, criterion, type_code, itemrequired=1):
 
 	pass
 
@@ -425,36 +426,36 @@ def addItem(*, content, criterion, type_code, itemrequired=1):
 # 		logging.error('abort syn progress...')
 
 @get('/manage/opttool')
-def getOptTool(request):
+async def getOptTool(request):
 	return {
 		'__template__': 'opttool.html'
 	}
 
 @get('/trouble/dashboard')
-def getDashboard(request):
+async def getDashboard(request):
 	return {
 		'__template__': 'dashboard.html'
 	}
 @get('/trouble/tickets')
-def getTroubleTickets(request):
+async def getTroubleTickets(request):
 	return {
 		'__template__': 'tickets.html'
 	}
 
 @get('/trouble/contact')
-def getContact(request):
+async def getContact(request):
 	return {
 		'__template__': 'contact.html'
 	}
 
 @get('/trouble/wiki')
-def getWiki(request):
+async def getWiki(request):
 	return {
 		'__template__': 'wiki.html'
 	}
 
 @post('/api/addtroubleticket')
-def addTroubleTicket(*, report_channel, type, region, level, description, 
+async def addTroubleTicket(*, report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
 		create_user, create_user_name, deal_user, deal_user_name):
 
@@ -463,7 +464,7 @@ def addTroubleTicket(*, report_channel, type, region, level, description,
 		create_user, create_user_name, deal_user, deal_user_name)
 
 @post('/api/updatetroubleticket')
-def updateTroubleTicket(*, tid, report_channel, type, region, level, description, 
+async def updateTroubleTicket(*, tid, report_channel, type, region, level, description, 
 		impact, custid, mac, contact, contact_phone, 
 		deal_user, deal_user_name):
 	return trouble.updateTroubleTicket(tid,report_channel, type, region, level, description, 
@@ -471,7 +472,7 @@ def updateTroubleTicket(*, tid, report_channel, type, region, level, description
 		deal_user, deal_user_name)
 
 @get('/api/troubleticket/gettrouble')
-def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region='', level='', confirmedtype=''):
+async def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region='', level='', confirmedtype=''):
 	page = int(page)
 	items_perpage = int(items_perpage)
 	if(filterflag != '' and int(filterflag) == 1):
@@ -489,7 +490,7 @@ def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='',
 
 # 获取工单统计数据，uid为登录用户id，pid为厂商id(suppor_provider)
 @get('/api/toubleticket/statistic')
-def getTroubleStat(*, uid, pid):
+async def getTroubleStat(*, uid, pid):
 	#工单量
 	troubleCount = trouble.getAllTroubleCount(const.STATUS_ALL)
 	#待处理工单量
@@ -503,7 +504,7 @@ def getTroubleStat(*, uid, pid):
 		taskCount=taskCount)
 
 @get('/api/toubleticket/gettask')
-def getTask(*, page, items_perpage, uid, pid):
+async def getTask(*, page, items_perpage, uid, pid):
 	page = int(page)
 	items_perpage = int(items_perpage)
 	taskCount = trouble.getTaskCountByProvider(pid)
@@ -513,16 +514,16 @@ def getTask(*, page, items_perpage, uid, pid):
 	return dict(totalitems=taskCount, totalpage=totalPages, tasks=tasks)
 
 @get('/api/troubleticket/getlogs')
-def getLogsByTrouble(*, troubleid):
+async def getLogsByTrouble(*, troubleid):
 	return dict(logs=trouble.getDealLogByTrouble(troubleid))
 
 @get('/api/troubleticket/getprovider')
-def getProvider():
+async def getProvider():
 	return dict(providers=trouble.getProvider())
 
 #任务处理接口
 @post('/api/troubleticket/dealingtask')
-def dealingTask(*,dealingtype, taskid, nextprovider, reply, confirmedtype,uid):
+async def dealingTask(*,dealingtype, taskid, nextprovider, reply, confirmedtype,uid):
 	
 	# dealingtype： REPLY-回单， TRANSIT- 转派, FINISHED-结单
 	# taskid -工单ID
@@ -533,7 +534,7 @@ def dealingTask(*,dealingtype, taskid, nextprovider, reply, confirmedtype,uid):
 
 #工单直接处理接口
 @post('/api/troubleticket/dealingtrouble')
-def dealingTrouble(*,troubleid, dealingtype, nextprovider, reply, uid):
+async def dealingTrouble(*,troubleid, dealingtype, nextprovider, reply, uid):
 	
 	# dealingtype： TRANSIT- 转派, FINISHED-结单
 	# nextprovider-下个处理厂家
@@ -543,7 +544,7 @@ def dealingTrouble(*,troubleid, dealingtype, nextprovider, reply, uid):
 
 #工单直接处理接口
 @post('/api/troubleticket/dealingtroublebatch')
-def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
+async def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 	
 	# dealingtype： TRANSIT- 转派, FINISHED-结单
 	# nextprovider-下个处理厂家
@@ -556,16 +557,52 @@ def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 	return res
 
 @get('/api/troubleticket/gettroublecategory')
-def getTroubleCategory(*, categorytype):
+async def getTroubleCategory(*, categorytype):
 	return dict(categories=trouble.getTroubleCategory(categorytype))
 
 @get('/api/troubleticket/getimpactarea')
-def getImpactArea():
+async def getImpactArea():
 	return dict(areas=trouble.getImpactArea())
 
 @get('/api/troubleticket/getregion')
-def getRegion():
+async def getRegion():
 	return dict(areas=trouble.getRegion())
+
+# 上传知识库文件的处理函数
+@post('/single-file')
+async def uploadSingleFile(request):
+	reader = await request.multipart()
+
+	# /!\ Don't forget to validate your inputs /!\
+
+	# reader.next() will `yield` the fields of your form
+	while True:
+		field = await reader.next()	
+		if field is None:
+			logging.info('没找到可上传文件!')
+			return
+		elif field.name == 'ufile':
+			break
+		else:
+			logging.info('field: %s' % field.name)
+
+	# assert field.name == 'ufile'
+	# 生成随机名称，扩展名保持不变
+	filename = str(uuid1()) + os.path.splitext(field.filename)[-1] 
+	# You cannot rely on Content-Length if transfer is chunked.
+	size = 0
+	with open(os.path.join(os.getcwd(),'files', filename), 'wb') as f:
+		while True:
+			chunk = await field.read_chunk()  # 8192 bytes by default.
+			if not chunk:
+				break
+			size += len(chunk)
+			f.write(chunk)
+
+	return web.Response(text='{} sized of {} successfully stored'
+							 ''.format(filename, size))
+
+
 
 
 

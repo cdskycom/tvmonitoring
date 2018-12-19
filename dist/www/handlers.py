@@ -137,7 +137,7 @@ def api_register_user(*, account, password, name, is_admin, support_provider_id,
 		raise APIValueError('password','密码不能为空')
 	if not name or not name.strip():
 		raise APIValueError('name','用户名不能为空')
-	if not support_provider_id or support_provider_id < 1:
+	if not support_provider_id or int(support_provider_id) < 1:
 		raise APIValueError('support_provider','支撑单位不能为空')
 	if not phone or not phone.strip():
 		raise APIValueError('phone','联系电话不能为空')
@@ -471,12 +471,18 @@ def updateTroubleTicket(*, tid, report_channel, type, region, level, description
 		deal_user, deal_user_name)
 
 @get('/api/troubleticket/gettrouble')
-def getTrouble(*, page, items_perpage, status):
+def getTrouble(*, page, items_perpage, status, filterflag='',stime='', etime='', region='', level='', confirmedtype=''):
 	page = int(page)
 	items_perpage = int(items_perpage)
-	troubleCount = trouble.getAllTroubleCount(status) 
+	if(filterflag != '' and int(filterflag) == 1):
+		troubleCount = trouble.getAllTroubleCount(status, filterflag=True, stime=stime, 
+			etime=etime, region=region, level=level, confirmedType=confirmedtype)
+		troubles = trouble.getTroublePageByStatus(page, items_perpage, status, 
+			filterflag=True, stime=stime, etime=etime, region=region, level=level, confirmedType=confirmedtype)
+	else:
+		troubleCount = trouble.getAllTroubleCount(status)
+		troubles = trouble.getTroublePageByStatus(page, items_perpage, status) 
 	totalPages = math.ceil(troubleCount / items_perpage)
-	troubles = trouble.getTroublePageByStatus(page, items_perpage, status)
 
 	return dict(totalitems=troubleCount, totalpage=totalPages, troubles=troubles)
 
@@ -516,14 +522,14 @@ def getProvider():
 
 #任务处理接口
 @post('/api/troubleticket/dealingtask')
-def dealingTask(*,dealingtype, taskid, nextprovider, reply, uid):
+def dealingTask(*,dealingtype, taskid, nextprovider, reply, confirmedtype,uid):
 	
 	# dealingtype： REPLY-回单， TRANSIT- 转派, FINISHED-结单
 	# taskid -工单ID
 	# nextprovider-下个处理厂家
 	# reply - 工单处理备注
 
-	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, uid)
+	return trouble.dealingTask(dealingtype, taskid, nextprovider, reply, confirmedtype, uid)
 
 #工单直接处理接口
 @post('/api/troubleticket/dealingtrouble')
@@ -550,14 +556,16 @@ def dealingTroublebatch(*,troubles, dealingtype, nextprovider, reply, uid):
 	return res
 
 @get('/api/troubleticket/gettroublecategory')
-def getTroubleCategory():
-	return dict(categories=trouble.getTroubleCategory())
+def getTroubleCategory(*, categorytype):
+	return dict(categories=trouble.getTroubleCategory(categorytype))
 
 @get('/api/troubleticket/getimpactarea')
 def getImpactArea():
 	return dict(areas=trouble.getImpactArea())
 
-
+@get('/api/troubleticket/getregion')
+def getRegion():
+	return dict(areas=trouble.getRegion())
 
 
 

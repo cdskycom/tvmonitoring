@@ -2,7 +2,7 @@
 from marshmallow_sqlalchemy import ModelSchema
 from marshmallow import fields
 from orm import User, SupportProvider, TroubleTask, TroubleTicket, TroubleDealLog
-from orm import TroubleCategory, ImpactArea
+from orm import TroubleCategory, ImpactArea, Region
 
 class SupportProviderSchema(ModelSchema):
 	class Meta:
@@ -42,5 +42,9 @@ class TroubleCategorySchema(ModelSchema):
 class ImpactAreaSchema(ModelSchema):
 	class Meta:
 		model = ImpactArea
+
+class RegionSchema(ModelSchema):
+	class Meta:
+		model = Region
 
 		

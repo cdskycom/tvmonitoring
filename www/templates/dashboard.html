@@ -105,7 +105,7 @@
                 <tr v-for="t in tasks.taskList">
                   <td><span v-bind:class="['label', {'label-warning': t.status==0, 'label-info': t.status==2}]" >{{ t.status | getStatus }}</span></td>
                   <td><span >{{ t.createtime | DateTimeFtt }}</span></td>
-                  <td><span v-bind:class="['label', {'label-danger': t.trouble.level==0, 'label-warning': t.trouble.level==1, 'label-info': t.trouble.level==2}]" >{{ t.trouble.level | levelStr}}</span></td>
+                  <td><span v-bind:class="['label', {'label-danger': t.trouble.level==0, 'label-warning': t.trouble.level==1, 'label-info': t.trouble.level==2, 'label-primary': t.trouble.level==3}]" >{{ t.trouble.level | levelStr}}</span></td>
                   <td><span v-text="t.trouble.type"></span></td>
                   <td><span v-text="t.trouble.region"></span></td>
                   <td><span>{{ t.trouble.description | shortcutStr(strLengthInTable) }}</span></td>

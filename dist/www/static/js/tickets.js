@@ -8,9 +8,11 @@ function getLocalDateString(){
         return t.getFullYear() + '-' + monthStr + '-' + dateStr + 'T' + hourStr + ':' + minuteStr;
 }
 
+
 var vm = new Vue({
 	el:'#app',
 	data:{
+		filter: false, //是否筛选工单
 		submit: false, //是否可提交回单及派单数据标识
 		validateerror: false,
 		validatemessage:'',
@@ -26,6 +28,8 @@ var vm = new Vue({
 		checkedTroubles: [], //复选框选中的工单号列表
 		troubleCategories: [], //故障类型
 		impactArea:[], //故障影响范围
+		region:[], //故障上报区域
+		confirmedType: [], //问题归属列表
 		newTrouble: {
 			report_channel: '',
 			type: '',
@@ -51,6 +55,11 @@ var vm = new Vue({
 			currentPage: 1,
 			itemsPerPage: 10,
 			status: 'ALL',  //ALL- 所有工单，ACCEPT-已创建未分派，DEALING-处理中，FINISHED-已完成
+			stime: '',	//工单起止日期过滤
+			etime: '',
+			filterRegion: '', //过滤区域信息
+			filterConfirmedType:'', //过滤问题归属
+			level: '',
 			totalItems: 0,
 			totalPage: 1,
 			troubleList: [],
@@ -65,6 +74,16 @@ var vm = new Vue({
 	computed:{
 		hasFinishedPermission:function(){
 			return userinfo.permission.indexOf('FIN') != -1;
+		},
+		troubleUrl:function(){
+			var url = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+			if(this.filter){
+				url = url + '&filterflag=1' + '&stime=' + this.troubles.stime + 
+				'&etime=' + this.troubles.etime + '&region=' + this.troubles.filterRegion + '&level=' + 
+				this.troubles.level + '&confirmedtype=' + this.troubles.filterConfirmedType;
+			}
+			return url;
 		}
 	},
 	methods:{
@@ -75,7 +94,7 @@ var vm = new Vue({
 			that.newTrouble = {
 				report_channel: '',
 				type: this.troubleCategories[0].name,
-				region: '',
+				region: this.region[0].region_name,
 				level: '0',
 				description: '',
 				impact: this.impactArea[0].area,
@@ -103,8 +122,8 @@ var vm = new Vue({
 		},
 		getTroubleCategory:function(){
 			that = this;
-			var troubleUrl = '/api/troubleticket/gettroublecategory';
-			axios.get(troubleUrl).then(function(res){
+			var url = '/api/troubleticket/gettroublecategory?categorytype=INIT';
+			axios.get(url).then(function(res){
 				that.troubleCategories= res.data.categories;	
 				
 			});
@@ -112,12 +131,29 @@ var vm = new Vue({
 		},
 		getImpactArea:function(){
 			that = this;
-			var troubleUrl = '/api/troubleticket/getimpactarea';
-			axios.get(troubleUrl).then(function(res){
+			var url = '/api/troubleticket/getimpactarea';
+			axios.get(url).then(function(res){
 				that.impactArea= res.data.areas;	
 				
 			});
 
+		},
+		getRegion:function(){
+			that = this;
+			var url = '/api/troubleticket/getregion';
+			axios.get(url).then(function(res){
+				that.region= res.data.areas;	
+				
+			});
+
+		},
+		getConfirmedType:function(){
+			that = this;
+			var url = '/api/troubleticket/gettroublecategory?categorytype=CONF';
+			axios.get(url).then(function(res){
+				that.confirmedType= res.data.categories;	
+				
+			});
 		},
 		createTroubleTicket:function(event){
 			that = this;
@@ -245,21 +281,17 @@ var vm = new Vue({
 				that.troublesTitle = '所有工单';
 			}
 			
-			var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
-			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
-			axios.get(troubleUrl).then(function(res){
-				that.troubles.totalItems = res.data.totalitems;
-				that.troubles.totalPage = res.data.totalpage;
-				that.troubles.troubleList = res.data.troubles;
+			// var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+			// this.troubles.itemsPerPage + '&status=' + this.troubles.status;
 
-			});
+			// changechange
 		},
 
 		getLogs:function(id){
 			if(this.curTroubleLogs == ''){
 				
 				that = this;
-				var url = baseUrl + 'api/troubleticket/getlogs?' + 'troubleid=' + id;
+				var url = '/api/troubleticket/getlogs?' + 'troubleid=' + id;
 				axios.get(url).then(function(res){
 					that.curTroubleLogs = res.data.logs;
 				});
@@ -383,9 +415,9 @@ var vm = new Vue({
 				that = this;
 				this.troubles.currentPage = playload.page;
 
-				var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
-					this.troubles.itemsPerPage + '&status=' + this.troubles.status;
-				axios.get(troubleUrl).then(function(res){
+				// var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+				// 	this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+				axios.get(this.troubleUrl).then(function(res){
 					that.troubles.troubleList = res.data.troubles;
 
 				});
@@ -396,15 +428,24 @@ var vm = new Vue({
 			that = this;
 			this.troubles.itemsPerPage = playload.newitems;
 			this.troubles.currentPage = 1;
-			var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
-				this.troubles.itemsPerPage + '&status=' + this.troubles.status;
-			axios.get(troubleUrl).then(function(res){
+			
+			axios.get(this.troubleUrl).then(function(res){
 				that.troubles.totalItems = res.data.totalitems;
 				that.troubles.totalPage = res.data.totalpage;
 				that.troubles.troubleList = res.data.troubles;
 
 			});
 
+		},
+		doFilter:function(){
+			that = this;
+			that.troubles.currentPage = 1;
+			axios.get(this.troubleUrl).then(function(res){
+				that.troubles.totalItems = res.data.totalitems;
+				that.troubles.totalPage = res.data.totalpage;
+				that.troubles.troubleList = res.data.troubles;
+
+			});
 		}
 		
 	},
@@ -428,9 +469,9 @@ var vm = new Vue({
 				that.troublesTitle = '所有工单';
 			}
     	}
-		var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
-			this.troubles.itemsPerPage + '&status=' + this.troubles.status;
-		axios.get(troubleUrl).then(function(res){
+		// var troubleUrl = '/api/troubleticket/gettrouble?page=' + this.troubles.currentPage + '&items_perpage=' + 
+		// 	this.troubles.itemsPerPage + '&status=' + this.troubles.status;
+		axios.get(this.troubleUrl).then(function(res){
 			that.troubles.totalItems = res.data.totalitems;
 			that.troubles.totalPage = res.data.totalpage;
 			that.troubles.troubleList = res.data.troubles;
@@ -438,6 +479,8 @@ var vm = new Vue({
 		});
 		this.getTroubleCategory();
 		this.getImpactArea();
+		this.getRegion();
+		this.getConfirmedType();
   	},
 	filters:{
 		//日期格式化过滤器
@@ -448,6 +491,7 @@ var vm = new Vue({
 				case '0': return '紧急故障';
 				case '1': return '一般故障';
 				case '2': return '感知问题';
+				case '3': return '割接验证';
 				default: return '未知级别';
 			}
 		},

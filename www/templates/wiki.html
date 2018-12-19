@@ -19,8 +19,8 @@
     <!-- Main content -->
     <section id="app" class="content container-fluid">
 
-      建设中....
-      <p>{{ wikistring }}</p>
+      <input id="file" name="file" type="file" ref="file" v-on:change="handleFileUpload">
+      <button v-on:click="submitFile()">Submit</button>
 
     </section>
     <!-- /.content -->
