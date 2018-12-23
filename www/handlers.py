@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from orm import User, Inspection, orm_to_dict, Schedule, InspectionType
+from orm import User, Inspection, orm_to_dict, Schedule, InspectionType, Tag
 from coroweb import get, post
 from apis import APIValueError, APIError
 from sqlalchemy.orm.exc import NoResultFound
-from aiohttp import web
+from aiohttp import web, streamer
 from config import configs
 from const import const
 import sys, logging, hashlib, base64, re, json, time, datetime, math, os
@@ -457,11 +457,11 @@ async def getWiki(request):
 @post('/api/addtroubleticket')
 async def addTroubleTicket(*, report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
-		create_user, create_user_name, deal_user, deal_user_name):
+		create_user, create_user_name, deal_user, deal_user_name, attachments):
 
 	return trouble.addTroubleTicket(report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
-		create_user, create_user_name, deal_user, deal_user_name)
+		create_user, create_user_name, deal_user, deal_user_name, attachments)
 
 @post('/api/updatetroubleticket')
 async def updateTroubleTicket(*, tid, report_channel, type, region, level, description, 
@@ -572,7 +572,8 @@ async def getRegion():
 @post('/single-file')
 async def uploadSingleFile(request):
 	reader = await request.multipart()
-
+	attachmentId = 0
+	uid = 0
 	# /!\ Don't forget to validate your inputs /!\
 
 	# reader.next() will `yield` the fields of your form
@@ -580,28 +581,156 @@ async def uploadSingleFile(request):
 		field = await reader.next()	
 		if field is None:
 			logging.info('没找到可上传文件!')
-			return
+			break 
 		elif field.name == 'ufile':
+			# assert field.name == 'ufile'
+			# 生成随机名称，扩展名保持不变
+			filename = field.filename
+			storedUrl = str(uuid1())
+			# You cannot rely on Content-Length if transfer is chunked.
+			size = 0
+			with open(os.path.join(os.getcwd(),'files', storedUrl), 'wb') as f:
+				while True:
+					chunk = await field.read_chunk()  # 8192 bytes by default.
+					if not chunk:
+						break
+					size += len(chunk)
+					f.write(chunk)
+			attachmentId = trouble.addAttachment(uid, storedUrl, '', filename, size)
+		elif field.name == 'uid':
+			uid = await field.text()
+			logging.info('uid: %s' % uid)
+		
+		
+	if attachmentId == 0:
+		raise APIValueError('attachment','附件上传失败')
+	else:
+		return dict(returncode=const.RETURN_OK, message='附件上传成功', id=attachmentId,filename=filename, url=storedUrl, size=size)
+
+
+	
+@post('/multiple-files')
+async def uploadMultiFiles(request):
+	reader = await request.multipart()
+
+	# /!\ Don't forget to validate your inputs /!\
+
+	# reader.next() will `yield` the fields of your form
+	allFiles = []
+	uid = 0
+	while True:
+		field = await reader.next()	
+		if field is None:
+			logging.info('没找到可上传文件!')
 			break
-		else:
+		elif field.name == 'uid':
+			uid = await field.text()
+			logging.info('uid: %s' % uid)
+		elif field.name.startswith('files'):
 			logging.info('field: %s' % field.name)
+			# 生成随机名称，扩展名保持不变
+			filename = field.filename
+			storedUrl = str(uuid1())
+			# You cannot rely on Content-Length if transfer is chunked.
+			size = 0
+			with open(os.path.join(os.getcwd(),'files', storedUrl), 'wb') as f:
+				while True:
+					chunk = await field.read_chunk()  # 8192 bytes by default.
+					if not chunk:
+						break
+					size += len(chunk)
+					f.write(chunk)
+			attId = trouble.addAttachment(uid, storedUrl, '', filename, size)
+			allFiles.append(dict(id=attId,filename=filename,url=storedUrl,size=size))
+			
+	if len(allFiles) == 0:
+		raise APIValueError('attachment','附件上传失败')
+	else:
+		return dict(returncode=const.RETURN_OK, message='附件上传成功', files=allFiles)
 
-	# assert field.name == 'ufile'
-	# 生成随机名称，扩展名保持不变
-	filename = str(uuid1()) + os.path.splitext(field.filename)[-1] 
-	# You cannot rely on Content-Length if transfer is chunked.
-	size = 0
-	with open(os.path.join(os.getcwd(),'files', filename), 'wb') as f:
-		while True:
-			chunk = await field.read_chunk()  # 8192 bytes by default.
-			if not chunk:
-				break
-			size += len(chunk)
-			f.write(chunk)
 
-	return web.Response(text='{} sized of {} successfully stored'
-							 ''.format(filename, size))
+@streamer
+async def file_sender(writer, file_path=None):
+    """
+    This function will read large file chunk by chunk and send it through HTTP
+    without reading them into memory
+    """
+    with open(file_path, 'rb') as f:
+        chunk = f.read(2 ** 16)
+        while chunk:
+            await writer.write(chunk)
+            chunk = f.read(2 ** 16)
 
+# 下载指定文件名的附件
+# file_name 文件存储路径-uuid
+# name 文件的显示名称
+@get('/download/{file_name}')
+async def download_file(file_name,request,*,name):
+    # file_name = request.match_info['file_name']  # Could be a HUGE file
+    headers = {
+        "Content-disposition": "attachment; filename={name}".format(name=name)
+    }
+
+    file_path = os.path.join(os.getcwd(),'files', file_name)
+
+    if not os.path.exists(file_path):
+        return web.Response(
+            body='File <{file_name}> does not exist'.format(file_name=file_name),
+            status=404
+        )
+
+    return web.Response(
+        body=file_sender(file_path=file_path),
+        headers=headers
+    )
+
+@post('/addtag')
+async def addTag(*,tagname):
+	tagId = 0
+	if not tagname or not tagname.strip():
+		raise APIValueError('tag','标签名不能为空')
+	filters = {Tag.name == tagname}
+	if len(trouble.getAllTags(*filters)) > 0:
+		raise APIError('tag', '标签已经存在')
+	tagId = trouble.addTag(tagname)
+	res = dict()
+	res['returncode'] = const.RETURN_OK
+	res['message'] = '用户添加成功'
+	return res
+
+@get('/tags')
+async def getAllTags():
+	return dict(tags=trouble.getAllTags())
+
+@post('/addwiki')
+async def addWiki(request, *, subject, summary, tags, attachment):
+	logging.info("登录用户: %s - %s" % (request.__user__['id'], request.__user__['name']))
+	logging.info("标签: %s" % str(tags))
+	if not subject or not subject.strip():
+		raise APIValueError('wiki','案例标题不能为空')
+	if not summary or not summary.strip():
+		raise APIValueError('wiki','案例概述不能为空')
+	if len(tags) <=0:
+		raise APIValueError('wiki', '请至少包含一个标签')
+	if not attachment or int(attachment) <=0:
+		raise APIValueError('wiki', '案例附件上传不正确')
+
+	return trouble.addWiki(request.__user__['id'], request.__user__['name'],
+		subject, summary, tags, attachment)
+
+@get('/api/getwiki')
+async def getWikiData(*, page, items_perpage, tag=''):
+	page = int(page)
+	items_perpage = int(items_perpage)
+	if tag:
+		wikiCount = trouble.getWikiCount(tag=tag)
+		wikis = trouble.getWikiPage(page, items_perpage, tag=tag) 
+	else:
+		wikiCount = trouble.getWikiCount()
+		wikis = trouble.getWikiPage(page, items_perpage) 
+	totalPages = math.ceil(wikiCount / items_perpage)
+
+	return dict(totalitems=wikiCount, totalpage=totalPages, wikis=wikis)
 
 
 

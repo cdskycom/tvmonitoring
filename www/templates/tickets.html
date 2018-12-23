@@ -108,6 +108,7 @@
                   <th>区域</th>
                   <th>故障现象</th>
                   <th>影响范围</th>
+                  <th>附件</th>
                   <th style="width: 80px">详情</th>
                 </tr>
                 <tr v-for="t in troubles.troubleList">
@@ -120,6 +121,7 @@
                   <td><span v-text="t.region"></span></td>
                   <td><span>{{ t.description | shortcutStr(strLengthInTable) }}</span></td>
                   <td><span v-text="t.impact"></span></td>
+                  <td><span>{{ t.attachments | hasAttachments }}</span></td>
                   <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-createtrouble" v-on:click="troubleDetail(t)">
                         查看
                       </button>
@@ -290,7 +292,23 @@
                           </div>
                       </div>
                       </div>
-                      
+                      <div v-if="troubles.addTrouble">
+                        <input id="file" name="files" type="file" ref="files" multiple v-on:change="handleMultiFilesUpload" style="position: absolute; top: -500px;">
+                        <div>
+                          <button class="form-control" v-on:click="addFiles()">添加工单附件</button>
+                        </div>
+                        <div>
+                          <div v-for="(file, key) in files">{{ file.name }} <span v-on:click="removeFile( key )" class="fa fa-fw fa-close"></span></div>
+                          <div v-if="fileUploaded" v-for="filename in fileNames">{{ filename }}</div>
+                        </div>
+                        <progress max="100" :value.prop="uploadPercentage" class="tv-modal-full-control"></progress>
+                        <button type="button" class="btn btn-primary" v-on:click="submitMultiFiles()" v-bind:disabled="prohibited">上传附件</button>
+                        <span style="color:red;">{{ message }}</span>
+                      </div>
+                      <div v-if="troubles.viewTrouble || troubles.editTrouble ">
+                        <div v-for="attachment in newTrouble.attachments"><i class="fa fa-fw fa-file-archive-o"></i><a :href="'/download/' + attachment.uuid + '?name=' + attachment.filename" target="_blank">【下载附件:{{ attachment.filename }}】</a></div>
+                      </div>
+
                   </div>
 
                   <div class="accordion" id="accordionExample" style="padding-right: 15px;padding-left: 15px;" v-if="!troubles.addTrouble">

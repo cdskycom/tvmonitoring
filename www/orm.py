@@ -2,8 +2,9 @@
 import sys, logging, json, datetime
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import relationship, sessionmaker, joinedload, subqueryload
-from sqlalchemy import create_engine, text, Column, Integer, String, Text, DateTime, Table, ForeignKey
 
+from sqlalchemy import create_engine, text, Column, Integer, String, Text, DateTime, Table, ForeignKey
+from sqlalchemy.sql import text
 from contextlib import contextmanager
 from collections import Iterable
 from const import const
@@ -39,6 +40,113 @@ def session_scope():
 		raise
 	finally: 
 		session.close()
+
+#上传的附件model
+class Attachment(Base):
+	__tablename__ = 'attachments'
+	id = Column(Integer, primary_key=True)
+	uuid = Column(String(50))
+	doc_type = Column(String(45))
+	filename = Column(String(255))
+	size = Column(Integer)
+	user_id = Column(Integer)
+
+# 标签model
+class Tag(Base):
+	__tablename__ = 'tags'
+	id = Column(Integer, primary_key=True)
+	name = Column(String(45))
+
+	@classmethod
+	def getAll(self, *filters):
+		result = []
+		with session_scope() as session:
+			tags = session.query(Tag).filter(*filters).all()
+			for tag in tags:
+				result.append(tag.to_dict())
+		return result
+
+	def to_dict(self):
+		from schema import TagSchema
+		tag_schema = TagSchema()
+		return tag_schema.dump(self).data
+
+wiki_tag = Table('wiki_tag', Base.metadata,
+	Column('wiki_id', ForeignKey('wikis.id'), primary_key=True),
+	Column('tag_id', ForeignKey('tags.id'), primary_key=True)
+	)
+
+
+# 案例model
+class Wiki(Base):
+	__tablename__ = 'wikis'
+	id = Column(Integer, primary_key=True)
+	subject = Column(String(255))
+	summary = Column(String(255))
+	attachment = Column(Integer, ForeignKey('attachments.id'))
+	create_time = Column(DateTime)
+	create_user = Column(Integer)
+	create_user_name = Column(String(45))
+
+	attachmentFile = relationship('Attachment')
+	tags = relationship('Tag',
+		secondary=wiki_tag)
+	@classmethod
+	def getAllWiki(self, *filters):
+		result = []
+		with session_scope() as session:
+			wikis = session.query(Wiki).filters(*filters).all()
+			for wiki in wikis:
+				result.append(wikik.to_dict())
+		return result
+	@classmethod
+	def getWikiCount(self, tag='', *filters):
+		with session_scope() as session:
+			
+			if tag != '':
+				
+				# sql = ''' select count(*) from wikis as w left join wiki_tag  as wt on w.id = wt.wiki_id
+				# where wt.tag_id = :tagid
+				# '''
+				# stmt = text(sql)
+				# stmt = stmt.bindparams(tagid=tag)
+				# conn = session.connection()
+				wikiCount = session.query(Wiki).join(wiki_tag,Wiki.id==wiki_tag.c.wiki_id).filter(wiki_tag.c.tag_id==tag).count()
+			
+			else:
+				wikiCount = session.query(Wiki).filter(*filters).count()
+		return wikiCount
+
+	@classmethod
+	def getWikiPage(self, page, items_perpage, tag='', *filters):
+		with session_scope() as session:
+			
+			offset = (page - 1) * items_perpage
+			if tag != '':
+				
+				# statement = wiki_tag.select().with_only_columns([wiki_tag.c.wiki_id]).where('tag_id=' + tag)
+				# wikiIds = session.execute(statement).fetchall()
+				# filterById = []
+				# for i in wikiIds:
+				# 	filterById.append(i[0])
+				# wikis = session.query(Wiki).filter(Wiki.id.in_(filterById)).order_by("create_time desc").limit(items_perpage).offset(offset)
+				wikis = session.query(Wiki).join(wiki_tag,Wiki.id==wiki_tag.c.wiki_id).filter(wiki_tag.c.tag_id==tag).order_by("create_time desc").limit(items_perpage).offset(offset)
+			else:
+				wikis = session.query(Wiki).filter(*filters).order_by("create_time desc").limit(items_perpage).offset(offset)
+
+			result = []
+
+			for wiki in wikis:
+				result.append(wiki.to_dict())
+		return result
+
+	
+
+	def to_dict(self):
+		from schema import WikiSchema
+		wiki_schema = WikiSchema()
+		return wiki_schema.dump(self).data
+
 
 # 服务供应商model
 class SupportProvider(Base):
@@ -194,6 +302,11 @@ class User(Base):
 	def __str__(self):
 		return '<User(id: %s, account: %s, name: %s)>' % (self.id, self.account, self.name)
 
+trouble_attachment = Table('trouble_attachment', Base.metadata,
+	Column('trouble_id', ForeignKey('trouble_tickets.id'), primary_key=True),
+	Column('attachment_id', ForeignKey('attachments.id'), primary_key=True)
+	)
+
 
 # 工单model
 class TroubleTicket(Base):
@@ -225,7 +338,8 @@ class TroubleTicket(Base):
 	confirmed_type = Column(String(45))
 
 	tasks = relationship("TroubleTask", back_populates="trouble")
-
+	attachments = relationship("Attachment", secondary=trouble_attachment)
+	
 	def __init__(self, report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
 		create_user, create_user_name, deal_user, deal_user_name):

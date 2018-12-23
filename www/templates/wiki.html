@@ -17,10 +17,121 @@
     </section>
 
     <!-- Main content -->
-    <section id="app" class="content container-fluid">
+    <section id="app" class="content container-fluid" v-cloak>
+      <div class="col-md-10">
+        <div v-if="tagFiltered" class="bg-aqua-active color-palette"><span>已过滤以下标签: {{ wikis.tagNameForFilter}} </span></div>
+        <div class="box-footer box-comments">
+              <div v-for="wiki in wikis.wikiList" class="box-comment">
 
-      <input id="file" name="file" type="file" ref="file" v-on:change="handleFileUpload">
-      <button v-on:click="submitFile()">Submit</button>
+                <div  class="comment-text">
+                      <span class="username">
+                        主题: {{ wiki.subject }}
+                        <span class="text-muted pull-right">{{ wiki.create_time | DateTimeFtt }} by {{ wiki.create_user_name }}</span> - 标签:
+                        <span class="label label-success tv-tag" v-for="wikitag in wiki.tags">{{ wikitag.name }}</span>
+                      </span>
+                      <!-- /.username -->
+                  {{ wiki.summary }}
+                  <a :href="'/download/' + wiki.attachmentFile.uuid + '?name=' + wiki.attachmentFile.filename" target="_blank">【下载案例文件】</a>
+                </div>
+                <!-- /.comment-text -->
+              </div>
+              
+            
+
+              
+            <my-pagenation v-bind:items-per-page="wikis.itemsPerPage" v-bind:total-page="wikis.totalPage" v-bind:current-page="wikis.currentPage" v-bind:total-items="wikis.totalItems" v-on:topage="handletopage" v-on:pageitemschange="handleitemschange" ></my-pagenation>
+              
+            
+        </div>
+        
+      </div>
+      <div class="col-md-2">
+        <div style="margin-bottom: 20px">
+          <button type="button" data-toggle="modal" data-target="#modal-createwiki" class="btn btn-secondary">新增案例</button>
+        </div>
+        <div>
+          <h5>案例标签:</h5>
+          <a href="#"><span class="label label-info tv-tag" v-for="tag in tags" v-on:click="getWikiByTag(tag.id, tag.name)">{{ tag.name }}(10)</span></a>
+          <br>
+          <input type="text" class="tv-small-input tv-tag" placeholder="加标签" v-model="newTag">
+          <button type="button" class="btn btn-info" v-on:click="addTag()"><i class="fa fa-fw fa-plus-square"></i></button>
+        </div>
+        
+      </div>
+
+      <div class="modal fade in" id="modal-createwiki" style="display: none;">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">×</span></button>
+                <h4 class="modal-title">创建案例</h4>
+              </div>
+              <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="box-body">
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">标题</label>
+                        <div class="col-sm-10">
+                           <input type="text" class="form-control" v-model="wikiSubject" >
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">概述</label>
+                        <div class="col-sm-10">
+                          <textarea class="form-control" rows="3" placeholder="Enter ..." v-model="wikiSummary"></textarea>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">选择标签</label>
+                        <div class="col-sm-10">
+                          <a href="#"><span v-for="(tag,key) in tags" class="label label-info tv-tag" v-on:click="addTagToWiki(tag.id,key)">{{ tag.name }}(10)<span v-if="tagSelected(tag.id)" class="tv-badge bg-yellow"><i class="fa fa-fw fa-check"></i></span>
+                          </span></a>
+                         
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label  class="col-sm-2 control-label">附件</label>
+                        <div class="col-sm-10">
+                          <input id="file" name="file" type="file" ref="file"  class="form-control" v-on:change="handleFileUpload" style="position: absolute; top: -800px;">
+                          <button type="button" class="form-control" v-on:click="addFile()">添加文件</button>
+                          <div>
+                            <span>{{ filename }}</span>
+                          </div>
+                          <progress max="100" :value.prop="uploadPercentage" class="tv-modal-full-control"></progress>
+                          <button type="button" class="btn btn-primary" v-on:click="submitFile()" v-bind:disabled="prohibited">上传附件</button>
+                          <span style="color:red;">{{ message }}</span>
+                        </div>
+                      </div>
+                        
+                        
+                    </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn  btn-primary" data-dismiss="modal" v-on:click="addWiki" >添加案例</button>
+              </div>
+            </div>
+            <!-- /.modal-content -->
+          </div>
+          <!-- /.modal-dialog -->
+        </div>
+
+        <div class="modal fade in" id="modal-message" style="display: none;">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span></button>
+                  <h4 class="modal-title"><span>{{ messageTitle }}</span></h4>
+                </div>
+                <div class="modal-body">
+                  <p><span>{{ message }}</span></p>
+                </div>
+            <!-- /.modal-dialog -->
+            </div>
+          </div>
+        </div>
 
     </section>
     <!-- /.content -->

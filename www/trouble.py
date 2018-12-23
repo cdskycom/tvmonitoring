@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from orm import User, SupportProvider, TroubleTicket, TroubleDealLog, TroubleTask, SupportProvider, session_scope
-from orm import TroubleCategory, ImpactArea, Region
+from orm import TroubleCategory, ImpactArea, Region, Attachment, Tag, Wiki, wiki_tag, trouble_attachment
 from const import const
 import logging, time, datetime
 from apis import APIValueError, APIError
@@ -13,7 +13,7 @@ import pdb
 
 def addTroubleTicket(report_channel, type, region, level, description, 
 		impact, startTime, custid, mac, contact, contact_phone, 
-		create_user, create_user_name, deal_user, deal_user_name):
+		create_user, create_user_name, deal_user, deal_user_name, attachments):
 	logging.info('创建工单，创建人: %s' % create_user_name)
 	if not report_channel or not report_channel.strip():
 		raise APIValueError('report_channel','上报渠道不能为空')
@@ -48,7 +48,13 @@ def addTroubleTicket(report_channel, type, region, level, description,
 		user = session.query(User).join(User.support_provider).filter(User.id==deal_user).one()
 		dealingLog = addTroubleLog(user, troubleTicket.id, '', const.DEALING_CREATE, None)
 		session.add(dealingLog)
+		
+		if len(attachments) > 0:
+			for attachment in attachments:
+				statement = trouble_attachment.insert().values(trouble_id=troubleTicket.id,attachment_id=attachment)
+				session.execute(statement)
 		session.commit()
+
 
 	res = dict()
 	res['returncode'] = const.RETURN_OK
@@ -275,4 +281,61 @@ def getRegion():
 def checkPermission(userPermission, needed):
 	permissionlist = userPermission.split('|')
 	return needed in permissionlist
+
+def addAttachment(userId, uuid, docType, filename, size):
+	attachementId = 0
+	with session_scope() as session:
+		attachment = Attachment(user_id=userId, uuid=uuid, doc_type=docType, filename=filename, size=size)
+		session.add(attachment)
+		session.commit()
+		attachementId = attachment.id
+	return attachementId
+
+def addTag(tagName):
+	tagId = 0
+	with session_scope() as session:
+		newTag = Tag(name=tagName)
+		session.add(newTag)
+		session.commit()
+		tagId = newTag.id
+	return tagId
+
+def getAllTags(*filters):
+	return Tag.getAll(*filters)
+
+def addWiki(userid, username,
+		subject, summary, tags, attachmentId):
+	wikiId = 0
+	res = dict()
+	with session_scope() as session:
+		wiki = Wiki(subject=subject, summary=summary, attachment=attachmentId, 
+			create_time=datetime.datetime.now(), create_user=userid,
+			create_user_name=username)
+		session.add(wiki)
+		session.commit()
+		wikiId = wiki.id
+		for tagid in tags:
+			statement = wiki_tag.insert().values(wiki_id=wikiId,tag_id=tagid)
+			session.execute(statement)
+		session.commit()
+	res['returncode'] = const.RETURN_OK
+	res['message'] = '添加案例成功, 案例名称:' + subject 
+	return res
+
+def getWikiCount(tag=''):
+	if tag != '':
+		# filters = ()
+		# filters = filters + (Wiki.tags == status,)
+		return Wiki.getWikiCount(tag)
+	else:
+		return Wiki.getWikiCount()
+
+def getWikiPage(page, items_perpage, tag=''):
+	if tag != '':
+		return Wiki.getWikiPage(page, items_perpage,tag)
+	else:
+		return Wiki.getWikiPage(page, items_perpage)
+
+
+
 

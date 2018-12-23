@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from marshmallow_sqlalchemy import ModelSchema
 from marshmallow import fields
-from orm import User, SupportProvider, TroubleTask, TroubleTicket, TroubleDealLog
+from orm import User, SupportProvider, TroubleTask, TroubleTicket, TroubleDealLog, Attachment, Tag, Wiki
 from orm import TroubleCategory, ImpactArea, Region
 
 class SupportProviderSchema(ModelSchema):
@@ -17,10 +17,15 @@ class UserSchema(ModelSchema):
 		dateformat = '%Y-%m-%dT%H:%M:%S'
 	support_provider = fields.Nested(SupportProviderSchema)
 
+class AttachmentSchema(ModelSchema):
+	class Meta:
+		model = Attachment
+
 class TroubleTicketSchema(ModelSchema):
 	class Meta:
 		model = TroubleTicket
 		dateformat = '%Y-%m-%dT%H:%M:%S'
+	attachments = fields.Nested("AttachmentSchema", many=True)
 
 class TroubleTaskSchema(ModelSchema):
 	class Meta:
@@ -46,5 +51,18 @@ class ImpactAreaSchema(ModelSchema):
 class RegionSchema(ModelSchema):
 	class Meta:
 		model = Region
+
+class TagSchema(ModelSchema):
+	class Meta:
+		model = Tag
+
+class WikiSchema(ModelSchema):
+	class Meta:
+		model = Wiki
+		dateformat = '%Y-%m-%dT%H:%M:%S'
+	tags = fields.Nested('TagSchema', many=True)
+	attachmentFile = fields.Nested('AttachmentSchema')
+			
+
 
 		

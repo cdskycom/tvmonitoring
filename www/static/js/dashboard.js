@@ -213,6 +213,9 @@ var vm = new Vue({
 				default: return '未知状态';
 			}
 		},
+		hasAttachments:function(attachments){
+			return attachments.length > 0 ? '是' : '否'
+		}
 		
 	}
 });

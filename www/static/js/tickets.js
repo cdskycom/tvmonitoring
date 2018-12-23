@@ -48,7 +48,8 @@ var vm = new Vue({
 			create_user_name: '',
 			deal_user: '',
 			deal_user_name: '',
-			dealingtime: ''
+			dealingtime: '',
+			attachments: []
 			
 		},
 		troubles: {
@@ -68,7 +69,13 @@ var vm = new Vue({
 			addTrouble: false,
 
 		},
-		
+		files: [], //多文件上传时文件数组
+		fileNames: [],
+		maxSize: 10485760, //文件最大尺寸10M
+		prohibited: false, //禁止上传文件
+		uploadPercentage: 0,
+		attachMentIds: [],
+		fileUploaded: false //附件是否已成功上传
 		
 	},
 	computed:{
@@ -119,6 +126,13 @@ var vm = new Vue({
 			that.troubles.editTrouble = false;
 			that.troubles.viewTrouble = false;
 			that.troubleWindowTitle = '创建工单';
+			that.fileUploaded = false;
+			that.files = [];
+			that.fileNames = [];
+			that.attachMentIds = [];
+			that.validatemessage = '';
+			that.messageTitle = '';
+			that.message = '';
 		},
 		getTroubleCategory:function(){
 			that = this;
@@ -175,7 +189,8 @@ var vm = new Vue({
 					create_user_name: userinfo.username,
 					deal_user: userinfo.uid,
 					deal_user_name: userinfo.username,
-					dealingtime: ''
+					dealingtime: '',
+					attachments: this.attachMentIds
 				}).then(function(res){
 					if(res.data.error){
 					
@@ -446,7 +461,69 @@ var vm = new Vue({
 				that.troubles.troubleList = res.data.troubles;
 
 			});
-		}
+		},
+		addFiles: function() {
+			this.$refs.files.click();
+		},
+		handleMultiFilesUpload: function() {
+			var uploadedFiles = this.$refs.files.files;
+			this.fileUploaded = false;
+			this.files = [];
+			for (var i = 0; i < uploadedFiles.length; i++) {
+				if (uploadedFiles[i].size > this.maxSize) {
+					this.prohibited = true;
+					this.message = "单个文件不能大于10M"
+					return;
+				} else {
+					this.prohibited = false;
+					this.message = ""
+				}
+				this.files.push(uploadedFiles[i]);
+			}
+		},
+		submitMultiFiles: function() {
+			var formData = new FormData();
+			formData.append('uid', userinfo.uid);
+			for (var i = 0; i < this.files.length; i++) {
+				var file = this.files[i];
+				formData.append('files[' + i + ']', file);
+			}
+
+			that = this;
+			axios.post(
+				'/multiple-files',
+				formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data'
+					},
+					onUploadProgress: function(progressEvent) {
+						that.uploadPercentage = parseInt(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+					}.bind(that)
+				}).then(function(res) {
+					that.files = [];
+					if(res.data.error){
+						that.message = res.data.message;
+						that.attachMentIds = [];
+						that.fileNames = [];
+					} else {
+						that.fileUploaded = true;
+						that.message = "文件上传成功!!";
+						for(var i = 0; i < res.data.files.length; i++){
+							console.log(res.data.files[i].id)
+							that.attachMentIds.push(res.data.files[i].id);
+							that.fileNames.push(res.data.files[i].filename);
+						}
+					}
+
+				}).catch(function(res) {
+					console.log('FAILURE!!');
+					
+				});
+		},
+		//删除已选择文件
+		removeFile: function(key) {
+			this.files.splice(key, 1);
+		},
 		
 	},
 
@@ -519,6 +596,9 @@ var vm = new Vue({
 				case 'FINISHED': return '回复';
 				default: return '未知动作';
 			}
+		},
+		hasAttachments:function(attachments){
+			return attachments.length > 0 ? '是' : '否'
 		}
 		
 	}

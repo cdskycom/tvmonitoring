@@ -100,6 +100,7 @@
                   <th>区域</th>
                   <th>故障现象</th>
                   <th>影响范围</th>
+                  <th>附件</th>
                   <th style="width: 80px">详情</th>
                 </tr>
                 <tr v-for="t in tasks.taskList">
@@ -110,6 +111,7 @@
                   <td><span v-text="t.trouble.region"></span></td>
                   <td><span>{{ t.trouble.description | shortcutStr(strLengthInTable) }}</span></td>
                   <td><span v-text="t.trouble.impact"></span></td>
+                  <td><span>{{ t.trouble.attachments | hasAttachments }}</span></td>
                   <td><button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal-default" v-on:click="taskDetail(t)" v-if="t.status == 0">
                         接单
                       </button>
@@ -279,6 +281,7 @@
                         </div>
                       </div>
                       
+                       <div v-for="attachment in tasks.currentTask.trouble.attachments"><i class="fa fa-fw fa-file-archive-o"></i><a :href="'/download/' + attachment.uuid + '?name=' + attachment.filename" target="_blank">【下载附件:{{ attachment.filename }}】</a></div>
 
                       <div class="accordion" id="accordionExample" style="padding-right: 15px;padding-left: 15px;">
                       <div class="card">
